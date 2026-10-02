@@ -1,0 +1,28 @@
+{
+  "setup": "frontier",
+  "goals": [
+    "domination",
+    "capital"
+  ],
+  "revealedAttack": true,
+  "connectedMovement": true,
+  "natives": {
+    "threatGap": 2,
+    "threatRounds": 3,
+    "quietRounds": 5,
+    "initialMin": 1,
+    "initialMax": 3,
+    "threatMin": 1,
+    "threatMax": 3,
+    "quietMin": 0,
+    "quietMax": 2,
+    "survivalMin": 1,
+    "survivalMax": 3,
+    "raidMinTroops": 11,
+    "raidTargetMax": 3,
+    "raidRatio": 4,
+    "raidChance": 3
+  },
+  "startingCountries": 5,
+  "startingArmy": 20
+}

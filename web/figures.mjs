@@ -1,3 +1,4 @@
+import { localize as tr } from './i18n.mjs';
 import { buildingArtworkTroops } from './buildings.mjs';
 import { figureMembers, experienceBadges } from './experience.mjs';
 import { buildingConstruction } from './construction-art.mjs';
@@ -154,7 +155,7 @@ export function battleCasualties(troops, losses, attacking=false, casualties=nul
 }
 
 export function figureBadge(figure) {
-  return figure.count>1?`<text class="figure-count" x="0" y="12" text-anchor="middle">×${figure.count}</text>`:'';
+  return figure.count>1?tr`<text class="figure-count" x="0" y="12" text-anchor="middle">×${figure.count}</text>`:'';
 }
 
 export function defensePosition(troops) {
@@ -370,7 +371,7 @@ export function battleScene(attackTroops, defenseTroops, attackColor, defenseCol
     </g></g>`;
   }).join('');
   };
-  return `<svg viewBox="0 ${mountainous?(capital?-178:-143):(capital?-100:-65)} 520 ${mountainous?(capital?348:313):(capital?270:235)}" class="battle-scene" role="img" aria-label="Truppen zu Kampfbeginn: Angriff ${attackTroops}, Verteidigung ${defenseTroops}">
+  return tr`<svg viewBox="0 ${mountainous?(capital?-178:-143):(capital?-100:-65)} 520 ${mountainous?(capital?348:313):(capital?270:235)}" class="battle-scene" role="img" aria-label="Truppen zu Kampfbeginn: Angriff ${attackTroops}, Verteidigung ${defenseTroops}">
     <defs><linearGradient id="battle-sky" x2="0" y2="1"><stop stop-color="#293e41"/><stop offset="1" stop-color="#899282"/></linearGradient></defs>
     <rect y="${mountainous?(capital?-178:-143):(capital?-100:-65)}" width="520" height="${mountainous?(capital?348:313):(capital?270:235)}" rx="7" fill="url(#battle-sky)"/>
     <path d="M0 58Q60 20 122 57T270 51 390 48 520 53V170H0" fill="#4d645a"/>

@@ -1,3 +1,4 @@
+import './content-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { automaticDefenseDice, createAutoCombat } from '../web/auto-combat.mjs';

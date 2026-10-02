@@ -731,7 +731,7 @@ func botOptions(g *Game) []botOption {
 		}
 	}
 	missionOptions(g, p, add)
-	if g.Rules == "domination" {
+	if g.hasBuildings() {
 		for i, t := range g.Territories {
 			id := i + 1
 			if !g.canBuild(id, p) {
@@ -744,13 +744,13 @@ func botOptions(g *Game) []botOption {
 				score = 35
 			}
 			if score > 0 {
-				for target := t.BuildingLevel + 1; target < len(buildingNames); target++ {
+				for target := t.BuildingLevel + 1; target < len(g.ruleSet().BuildingNames); target++ {
 					cost := target - t.BuildingLevel
 					if len(g.Players[p].Cards) < cost {
 						break
 					}
 					level := target
-					add(Action{Type: "build", Territory: id, Level: &level, Cards: append([]int{}, g.Players[p].Cards[:cost]...)}, score/float64(cost), map[string]any{"building": buildingNames[target], "card_cost": cost, "own_turns_to_complete": buildingUpgradeDuration(t.BuildingLevel, target), "garrison_after_cost": t.Troops, "current_defense_slots": 2 + t.BuildingLevel, "future_defense_slots": 2 + target})
+					add(Action{Type: "build", Territory: id, Level: &level, Cards: append([]int{}, g.Players[p].Cards[:cost]...)}, score/float64(cost), map[string]any{"building": g.ruleSet().BuildingNames[target], "card_cost": cost, "own_turns_to_complete": g.ruleSet().upgradeDuration(t.BuildingLevel, target), "garrison_after_cost": t.Troops, "current_defense_slots": 2 + t.BuildingLevel, "future_defense_slots": 2 + target})
 				}
 			}
 		}
@@ -807,7 +807,7 @@ func botState(g *Game) map[string]any {
 		}
 	}
 	cardPlan := map[string]any{"best_current_set_bonus": bestSet, "cards_until_mandatory_exchange": max(0, 5-len(cards)), "conquest_awards_only_one_card": true, "first_conquest_high_priority": !g.Conquered, "card_draw_pending": g.Turn == p && g.Conquered && !g.CardDrawn && (g.Phase == "attack" || g.Phase == "occupy" || g.Phase == "defend"), "opponent_sets_unknown": true}
-	return map[string]any{"your_mission": g.missionView(p), "mission_objective": g.ownMission(p), "rules": g.Rules, "goal": g.Goal, "native_growth_threatened_rounds": nativeThreatGrowthRounds, "native_growth_quiet_rounds": nativeQuietGrowthRounds, "native_growth_threatened_range": []int{1, 3}, "native_growth_quiet_range": []int{0, 2}, "native_threat_includes_other_natives": true, "native_threat_min_troop_difference": nativeThreatGap, "native_sortie_min_troops": 11, "native_sortie_target_max_troops": 3, "native_sortie_max_target_ratio": 0.25, "native_growth_random_per_territory": true, "native_survival_growth_range": []int{1, 3}, "native_survival_growth_after_entire_attack": true, "frontier_setup": g.Setup == "frontier", "recent_attacker": recentAttacker(g, p), "you": p, "phase": g.Phase, "round": g.Round, "card_mode": g.Mode, "trade_count": g.Trades, "next_trade_max_bonus": nextCardBonus(g), "reserve_to_place": g.Pool, "card_already_earned": g.Conquered, "must_trade": g.Phase == "reinforce" && g.mustTrade(), "players": players, "territories": territories, "continents": g.board().Continents, "continent_plans": continentPlans, "your_cards": myCards, "card_plan": cardPlan}
+	return map[string]any{"your_mission": g.missionView(p), "mission_objective": g.ownMission(p), "rules": g.Rules, "goal": g.Goal, "native_growth_threatened_rounds": g.nativeRules().ThreatRounds, "native_growth_quiet_rounds": g.nativeRules().QuietRounds, "native_growth_threatened_range": []int{g.nativeRules().ThreatMin, g.nativeRules().ThreatMax}, "native_growth_quiet_range": []int{g.nativeRules().QuietMin, g.nativeRules().QuietMax}, "native_threat_includes_other_natives": true, "native_threat_min_troop_difference": g.nativeRules().ThreatGap, "native_sortie_min_troops": g.nativeRules().RaidMinTroops, "native_sortie_target_max_troops": g.nativeRules().RaidTargetMax, "native_sortie_max_target_ratio": 1 / float64(max(1, g.nativeRules().RaidRatio)), "native_growth_random_per_territory": true, "native_survival_growth_range": []int{g.nativeRules().SurvivalMin, g.nativeRules().SurvivalMax}, "native_survival_growth_after_entire_attack": true, "frontier_setup": g.Setup == "frontier", "recent_attacker": recentAttacker(g, p), "you": p, "phase": g.Phase, "round": g.Round, "card_mode": g.Mode, "trade_count": g.Trades, "next_trade_max_bonus": nextCardBonus(g), "reserve_to_place": g.Pool, "card_already_earned": g.Conquered, "must_trade": g.Phase == "reinforce" && g.mustTrade(), "players": players, "territories": territories, "continents": g.board().Continents, "continent_plans": continentPlans, "your_cards": myCards, "card_plan": cardPlan}
 }
 func botOptionID(i int) string { return fmt.Sprintf("move_%03d", i) }
 

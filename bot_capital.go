@@ -12,7 +12,7 @@ func capitalDefenseNeed(g *Game, p, captured int) int {
 		return 1
 	}
 	need := 3 // Legacy capitals unlock all four dice with three defenders.
-	if g.Rules == "domination" {
+	if g.hasBuildings() {
 		need = g.defenseLimit(capital)
 	}
 	consider := func(source, via int) {

@@ -1,3 +1,6 @@
+import './content-fixture.mjs';
+import { setLanguage, localize as tr, currentLocale, serverText, localizeBoard } from '../web/i18n.mjs';
+await setLanguage('de',{persist:false});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixedCardValues, progressiveCardValue } from '../web/card-values.mjs';
@@ -12,5 +15,5 @@ test('mini world halves fixed and progressive card awards with integer rounding'
   assert.equal(progressiveCardValue(7,map),25);
  }
  assert.match(rulesHTML({map:'simple-world',rules:'classic'}), /2, 3, 4, 5, 6, 7, 10, 12, 15, 17/);
- assert.match(rulesHTML({map:'simple-world',mode:'fixed'}), /Infanteriekarten bringen 2/);
+ assert.match(rulesHTML({map:'simple-world',mode:'fixed',rules:'domination'}), /Infanteriekarten bringen 2/);
 });

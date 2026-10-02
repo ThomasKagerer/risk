@@ -175,7 +175,7 @@ def build():
               singaporeOrigin=list(project(103.82,1.35)))
     from build_continents import add_continents
     add_continents(data)
-    (ROOT/'web/assets/world120.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
+    (ROOT/'web/dlcs/world-1700/world120.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
     print('Built 120 regions, 122 cards,',sum(map(len,neighbors))//2,'connections.')
 
 if __name__=='__main__':

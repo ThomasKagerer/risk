@@ -1,3 +1,7 @@
+import { hasFeature, ruleConfig, installedPackages } from '../web/content.mjs';
+import './content-fixture.mjs';
+import { setLanguage, localize as tr, currentLocale, serverText, localizeBoard } from '../web/i18n.mjs';
+await setLanguage('de',{persist:false});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -20,7 +24,7 @@ function harness(fullscreen=true,building=false){
     }
     return nodes.get(id);
   }
-  const context=vm.createContext({
+  const context=vm.createContext({hasFeature,ruleConfig,installedPackages,tr,currentLocale,serverText,localizeBoard,
     $:node,ResizeObserver:class{observe(){}},window:{addEventListener(){}},
     document:{elementFromPoint:()=>({closest:selector=>selector==='[data-building-id]'?(building?{dataset:{buildingId:'1'}}:null):{dataset:{id:'1'}}})},
     camera:{x:-500,y:-250,zoom:2},viewport:{width:800,height:500},pixelsPerUnit:1,

@@ -1,21 +1,22 @@
+import { localize as tr } from './i18n.mjs';
 // Historical motifs, not reproductions of standardized modern national flags.
 // Sources and the deliberately conservative territory mapping: docs/historical-banners.md.
 const motifs = {
-  england: 'Georgskreuz, vor 1700 belegt',
-  scotland: 'Andreaskreuz, vor 1700 belegt',
-  union1606: 'Unionsflagge von 1606, ohne das erst 1801 ergänzte Patrickskreuz',
-  netherlands: 'Rot-Weiß-Blau der niederländischen Republik, 17. Jahrhundert',
-  denmark: 'Dannebrog von Dänemark-Norwegen, um 1700',
-  sweden: 'Schwedisches Kreuzbanner, um 1700; Finnland gehörte damals zu Schweden',
-  bavaria: 'Weiß-blaue Rauten der Wittelsbacher, heraldisch vereinfacht',
-  swiss: 'Weißes Kreuz auf Rot, historisches eidgenössisches Feldzeichen',
-  burgundy: 'Rotes Burgunderkreuz der spanischen Monarchie, vor 1700 belegt',
-  aragon: 'Vier rote Pfähle auf Gold, historisches Wappenmotiv Aragóns',
-  imperial: 'Doppeladler des Heiligen Römischen Reiches, heraldisch vereinfacht',
-  austria: 'Rot-weiß-roter österreichischer Bindenschild, vereinfachtes Wappenmotiv',
-  france: 'Lilien der französischen Monarchie, vereinfachtes Wappenmotiv',
-  portugal: 'Portugiesische Quinas, vereinfachtes historisches Wappenmotiv',
-  tokugawa: 'Dreiblättriges Aoi-Mon der Tokugawa, vereinfachtes Herrschaftszeichen der Edo-Zeit',
+  england: tr('Georgskreuz, vor 1700 belegt'),
+  scotland: tr('Andreaskreuz, vor 1700 belegt'),
+  union1606: tr('Unionsflagge von 1606, ohne das erst 1801 ergänzte Patrickskreuz'),
+  netherlands: tr('Rot-Weiß-Blau der niederländischen Republik, 17. Jahrhundert'),
+  denmark: tr('Dannebrog von Dänemark-Norwegen, um 1700'),
+  sweden: tr('Schwedisches Kreuzbanner, um 1700; Finnland gehörte damals zu Schweden'),
+  bavaria: tr('Weiß-blaue Rauten der Wittelsbacher, heraldisch vereinfacht'),
+  swiss: tr('Weißes Kreuz auf Rot, historisches eidgenössisches Feldzeichen'),
+  burgundy: tr('Rotes Burgunderkreuz der spanischen Monarchie, vor 1700 belegt'),
+  aragon: tr('Vier rote Pfähle auf Gold, historisches Wappenmotiv Aragóns'),
+  imperial: tr('Doppeladler des Heiligen Römischen Reiches, heraldisch vereinfacht'),
+  austria: tr('Rot-weiß-roter österreichischer Bindenschild, vereinfachtes Wappenmotiv'),
+  france: tr('Lilien der französischen Monarchie, vereinfachtes Wappenmotiv'),
+  portugal: tr('Portugiesische Quinas, vereinfachtes historisches Wappenmotiv'),
+  tokugawa: tr('Dreiblättriges Aoi-Mon der Tokugawa, vereinfachtes Herrschaftszeichen der Edo-Zeit'),
 };
 
 // Match names, never numeric IDs: the two boards assign different IDs to places.
@@ -32,10 +33,10 @@ const territories = new Map([
 ]);
 
 export function countryBanner(country) {
-  const name=country?.name||'Unbekanntes Land';
-  if(country?.era===1871)return {type:'country',name,motif:'regional',description:`${country.polity||name} · 1871; neutrales Landesbanner`};
-  const motif=territories.get(name)||'regional';
-  return {type:'country',name,motif,description:motifs[motif]||'Neutrales Landesbanner; kein eindeutig belegtes gemeinsames Banner um 1700 zugeordnet'};
+  const name=country?.name||tr('Unbekanntes Land');
+  if(country?.era===1871)return {type:'country',name,motif:'regional',description:tr`${country.polity||name} · 1871; neutrales Landesbanner`};
+  const motif=territories.get(country?.sourceName||name)||'regional';
+  return {type:'country',name,motif,description:motifs[motif]||tr('Neutrales Landesbanner; kein eindeutig belegtes gemeinsames Banner um 1700 zugeordnet')};
 }
 
 const field=color=>`<rect width="16" height="10" fill="${color}"/>`;

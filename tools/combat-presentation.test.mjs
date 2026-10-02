@@ -1,3 +1,7 @@
+import { hasFeature, ruleConfig, installedPackages } from '../web/content.mjs';
+import './content-fixture.mjs';
+import { setLanguage, localize as tr, currentLocale, serverText, localizeBoard } from '../web/i18n.mjs';
+await setLanguage('de',{persist:false});
 import { buildingArtworkTroops } from '../web/buildings.mjs';
 import { maxAttackDice, armyExperience } from '../web/experience.mjs';
 import test from 'node:test';
@@ -29,7 +33,7 @@ function harness(storage=new Map()){
     }
     return nodes.get(id);
   };
-  const context=vm.createContext({
+  const context=vm.createContext({hasFeature,ruleConfig,installedPackages,tr,currentLocale,serverText,localizeBoard,
     localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value)},
     document:{body:node('body'),addEventListener(type,fn){node('document').listeners[type]=fn;}},
     state:{code:'TEST',players:[{name:'Ada'},{name:'Ben'},{name:'Cleo'}],revision:10,phase:'attack',turn:0,actor:0,me:1,hand:[],territories:[{owner:0,troops:8},{owner:1,troops:3}]},
@@ -313,7 +317,7 @@ test('each side loses its own matching figure, with no replacements before the n
 
 test('top player strip highlights the turn owner while the defender chooses dice',()=>{
   let html='';
-  const context=vm.createContext({state:{turn:0,actor:1,me:1,phase:'defend',players:[
+  const context=vm.createContext({hasFeature,ruleConfig,installedPackages,tr,currentLocale,serverText,localizeBoard,state:{turn:0,actor:1,me:1,phase:'defend',players:[
     {name:'Angreifer',territories:4,troops:10,cards:2},{name:'Verteidiger',territories:3,troops:8,cards:1}]},
     $$:()=>[], $:id=>id==='#players'?{set innerHTML(value){html=value;}}:id==='#game-settings'?{}:null,
     controlledContinents,board:{continents:[],countries:[]},displayColor:()=> 'red',escapeHTML:s=>s,botPlayerDetail:()=>'',managePlayers(){},renderAutoDefenseSettings(){},renderPauseControls(){},

@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "id": "mini-world",
+  "name": "Mini-Welt",
+  "version": "1.0.0",
+  "maps": [
+    {
+      "id": "simple-world",
+      "file": "simple-world.json",
+      "multiPlacement": true,
+      "cardDivisor": 2,
+      "scaleFrontier": true
+    }
+  ],
+  "rules": []
+}

@@ -1,11 +1,5 @@
 package main
 
-const (
-	nativeThreatGap          = 2
-	nativeThreatGrowthRounds = 3
-	nativeQuietGrowthRounds  = 5
-)
-
 // An uprising is one ordinary, visible dice battle between turns. A human
 // defender keeps their normal dice choice. Persist the interrupted next turn.
 type NativeRaid struct {
@@ -31,7 +25,7 @@ func (g *Game) finishNativeDefense(rng Random) int {
 	if t.Troops < 1 || t.Owner != attack.Defender || !g.Players[t.Owner].Neutral {
 		return 0
 	}
-	growth := 1 + rng(3)
+	growth := randomRange(g.nativeRules().SurvivalMin, g.nativeRules().SurvivalMax, rng)
 	t.Troops += growth
 	g.ensureUnitHistory(false)
 	g.recordNativeReinforcements(t.Owner, growth)
@@ -44,7 +38,7 @@ func (g *Game) nativeThreat(id int) bool {
 	for _, nb := range g.board().Countries[id-1].Neighbors {
 		other := g.Territories[nb-1]
 		// Native countries are independent: sharing the neutral owner is irrelevant.
-		if other.Owner >= 0 && other.Troops-t.Troops >= nativeThreatGap {
+		if other.Owner >= 0 && other.Troops-t.Troops >= g.nativeRules().ThreatGap {
 			return true
 		}
 	}
@@ -72,15 +66,15 @@ func (g *Game) growNatives(rng Random) {
 		if threatened[i] {
 			t.NativeQuietRounds = 0
 			t.NativeThreatRounds++
-			if t.NativeThreatRounds >= nativeThreatGrowthRounds {
-				growth = 1 + rng(3)
+			if t.NativeThreatRounds >= g.nativeRules().ThreatRounds {
+				growth = randomRange(g.nativeRules().ThreatMin, g.nativeRules().ThreatMax, rng)
 				t.NativeThreatRounds = 0
 			}
 		} else {
 			t.NativeThreatRounds = 0
 			t.NativeQuietRounds++
-			if t.NativeQuietRounds >= nativeQuietGrowthRounds {
-				growth = rng(3)
+			if t.NativeQuietRounds >= g.nativeRules().QuietRounds {
+				growth = randomRange(g.nativeRules().QuietMin, g.nativeRules().QuietMax, rng)
 				t.NativeQuietRounds = 0
 			}
 		}
@@ -105,23 +99,23 @@ func (g *Game) startNativeRaid(rng Random) bool {
 	type border struct{ from, to int }
 	candidates := []border{}
 	for i, t := range g.Territories {
-		if t.Owner < 0 || !g.Players[t.Owner].Neutral || t.Troops <= 10 {
+		if t.Owner < 0 || !g.Players[t.Owner].Neutral || t.Troops < g.nativeRules().RaidMinTroops {
 			continue
 		}
 		for _, nb := range g.board().Countries[i].Neighbors {
 			target := g.Territories[nb-1]
-			if target.Owner >= 0 && !g.Players[target.Owner].Neutral && target.Troops > 0 && target.Troops <= 3 && target.Troops*4 <= t.Troops {
+			if target.Owner >= 0 && !g.Players[target.Owner].Neutral && target.Troops > 0 && target.Troops <= g.nativeRules().RaidTargetMax && target.Troops*g.nativeRules().RaidRatio <= t.Troops {
 				candidates = append(candidates, border{i + 1, nb})
 			}
 		}
 	}
 	// At most one native sortie per full round, with a one-in-three chance.
-	if len(candidates) == 0 || rng(3) != 0 {
+	if len(candidates) == 0 || rng(g.nativeRules().RaidChance) != 0 {
 		return false
 	}
 	chosen := candidates[rng(len(candidates))]
 	g.NativeRaid = &NativeRaid{ResumeTurn: g.Turn}
-	if g.Rules == "domination" {
+	if g.hasExperience() {
 		g.ExperienceTurn++
 	}
 	g.Turn = g.Territories[chosen.from-1].Owner
@@ -146,7 +140,7 @@ func (g *Game) finishNativeRaid(b *Battle) {
 		source, target := &g.Territories[b.From-1], &g.Territories[b.To-1]
 		if g.Goal == "capital" {
 			g.Players[newcomer].Capital = b.From
-			if g.Rules == "domination" {
+			if g.hasBuildings() {
 				g.Territories[b.From-1].BuildingLevel = max(1, g.Territories[b.From-1].BuildingLevel)
 			}
 		}

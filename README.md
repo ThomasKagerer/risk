@@ -1,10 +1,20 @@
 # Weltspiel · Strategieatlas
 
-Brettspiel im Browser für 2–6 Spieler, mit Hotseat, Einladungslinks und lokalen Computergegnern. Enthält die Modi „Klassisch“ und „Aufbau & Eroberung“, Missionen, Hauptstädte, mehrere Karten, Gebäude und Einheitenerfahrung.
+Brettspiel im Browser für 2–6 Spieler, mit Hotseat, Einladungslinks und lokalen Computergegnern. Das Grundspiel enthält klassische Regeln und die Karten „Klassische Welt“ und „Europa um 1871“. „Aufbau & Eroberung“, „Mini-Welt“ und „Welt um 1700“ werden als getrennte DLC-Pakete mitgeliefert.
 
 Neue Partien starten standardmäßig mit klassischen Eroberungsregeln, der klassischen Weltkarte und steigenden Kartenboni.
 
 Diese Spielversion enthält keine LLM-Anbindung, Trainingsdienste oder Modellgewichte. Lokale Strategie-Bots, Ragnar und Klaus Störtebeker sind enthalten.
+
+## DLCs
+
+Pakete liegen unter `web/dlcs/`, werden automatisch mitgebaut und beim Spielstart geladen. „Aufbau & Eroberung“ enthält Karte und eigene Regeln. Die beiden Karten-DLCs erlauben beim Aufstellen Figuren mit 1, 5 oder 10 Einheiten. Paketformat und Kompatibilität: [DLC-Dokumentation](docs/dlcs.md).
+
+## Sprachen
+
+Englisch ist die Standardsprache. Die Sprachauswahl unterstützt außerdem Deutsch, Französisch, Italienisch, Spanisch, vereinfachtes Chinesisch und Japanisch. Die Auswahl wird im jeweiligen Browser gespeichert; ein Wechsel lädt die Oberfläche neu und verbindet eine laufende Partie erneut.
+
+Alle Texte liegen lokal unter `web/locales/`. Sie wurden im Spielkontext übersetzt; es werden keine Texte an Übersetzungsdienste gesendet. Spielernamen und Raumcodes bleiben unverändert. `web/i18n.mjs` übersetzt Oberflächentexte, Kartenbeschriftungen und ältere deutsche Servermeldungen, ohne das Spielstandformat zu ändern. Neue Texte müssen in allen sieben Katalogen ergänzt werden; Platzhalter `{0}`, `{1}` usw. bleiben erhalten. Die Sprachtests prüfen die Kataloge und dynamische Meldungen.
 
 ## Lokal starten
 

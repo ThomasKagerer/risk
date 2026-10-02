@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "id": "world-1700",
+  "name": "Welt um 1700",
+  "version": "1.0.0",
+  "maps": [
+    {
+      "id": "world120",
+      "file": "world120.json",
+      "terrain": "terrain.json",
+      "multiPlacement": true
+    }
+  ],
+  "rules": []
+}

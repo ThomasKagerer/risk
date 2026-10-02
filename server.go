@@ -243,6 +243,9 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		r = r.WithContext(context.WithValue(r.Context(), accessContextKey{}, user))
 	}
+	if s.serveContent(w, r) {
+		return
+	}
 	if r.URL.Path == "/api/rooms" && r.Method == "GET" {
 		s.myRooms(w, r)
 		return
@@ -372,8 +375,8 @@ func (s *server) create(w http.ResponseWriter, r *http.Request) {
 	if input.Rules == "" {
 		input.Rules = "classic"
 	}
-	if input.Rules != "classic" && input.Rules != "domination" {
-		problem(w, 400, errors.New("Wähle Klassisch oder Aufbau & Eroberung."))
+	if _, ok := content.rules[input.Rules]; !ok {
+		problem(w, 400, errors.New("Wähle einen installierten Regelmodus."))
 		return
 	}
 	if input.Rules == "classic" {
@@ -420,10 +423,9 @@ func (s *server) create(w http.ResponseWriter, r *http.Request) {
 	token := randomString(48, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	g := newGame(code, input.Mode, name, hashToken(token), input.Map)
 	g.Rules = input.Rules
-	g.Setup = "frontier"
-	if input.Rules == "classic" {
-		g.Setup = "classic"
-	}
+	config := rulesFor(input.Rules)
+	g.RuleConfig = &config
+	g.Setup = config.Setup
 	g.Goal = input.Goal
 	g.Players[0].IdentityHash = currentUser(r).Hash
 	for _, p := range input.Players {

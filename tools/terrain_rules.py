@@ -37,7 +37,7 @@ if __name__ == '__main__':
     from build_world120 import project
     ranges = mountain_ranges(project)
     for filename in ['board.json', 'world120.json']:
-        path = ROOT / 'web/assets' / filename
+        path = ROOT / 'web/dlcs/world-1700/world120.json' if filename == 'world120.json' else ROOT / 'web/assets' / filename
         data = json.loads(path.read_text())
         if filename == 'board.json':
             classic_terrain(data)

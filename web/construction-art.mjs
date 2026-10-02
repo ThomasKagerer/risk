@@ -1,3 +1,4 @@
+import { localize as tr } from './i18n.mjs';
 // Timber staging and a treadwheel crane share one silhouette at every scale.
 // Keep the gateway clear: diagonal braces belong to the side scaffold bays.
 export function constructionArtwork(){
@@ -25,5 +26,5 @@ export function buildingConstruction(level=0){
  const x=level===0?370:level===1?310:level===2?300:270;
  const width=level===0?155:level===1?215:250;
  const height=level<2?135:level===2?145:210;
- return `<g class="building-construction" aria-label="Gebäude wird erweitert" transform="translate(${x} ${156-height}) scale(${width/160} ${height/150})">${constructionArtwork()}</g>`;
+ return tr`<g class="building-construction" aria-label="Gebäude wird erweitert" transform="translate(${x} ${156-height}) scale(${width/160} ${height/150})">${constructionArtwork()}</g>`;
 }

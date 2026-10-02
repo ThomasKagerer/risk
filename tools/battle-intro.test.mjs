@@ -1,3 +1,6 @@
+import './content-fixture.mjs';
+import {setLanguage} from '../web/i18n.mjs';
+await setLanguage('de',{persist:false});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createBattleIntro, attackRouteMarkup } from '../web/battle-intro.mjs';

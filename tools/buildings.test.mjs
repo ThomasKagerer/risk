@@ -1,3 +1,6 @@
+import './content-fixture.mjs';
+import { setLanguage, localize as tr, currentLocale, serverText, localizeBoard } from '../web/i18n.mjs';
+await setLanguage('de',{persist:false});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildingNames, buildingInfo, buildingDescription, mapBuilding, buildingArtworkTroops, buildingUpgradeDuration, constructionDuration, nextBuildingStage } from '../web/buildings.mjs';

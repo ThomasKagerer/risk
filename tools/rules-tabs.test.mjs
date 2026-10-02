@@ -1,3 +1,6 @@
+import './content-fixture.mjs';
+import { setLanguage, localize as tr, currentLocale, serverText, localizeBoard } from '../web/i18n.mjs';
+await setLanguage('de',{persist:false});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {rulesTabsHTML, bindRulesTabs} from '../web/rules.mjs';
@@ -11,7 +14,7 @@ test('rules always open on classic and isolate preview rules from the classic pa
   assert.doesNotMatch(classic, /Preview|Verteidigung ausbauen|Verteidige deine Hauptstadt/);
   assert.match(classic, /Die Verteidigung wählt vor dem Wurf/);
   assert.match(domination, / hidden>/);
-  assert.match(domination, /Preview · in progress/);
+  assert.match(domination, /Vorschau · in Entwicklung/);
   assert.match(domination, /Verteidigung ausbauen/);
   assert.match(domination, /Verteidige deine Hauptstadt/);
   const mission = rulesTabsHTML({goal:'mission', map:'europe1871'});

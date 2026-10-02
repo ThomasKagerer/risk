@@ -1,0 +1,72 @@
+{
+  "format": 1,
+  "id": "aufbau-eroberung",
+  "name": "Aufbau & Eroberung",
+  "version": "1.0.0",
+  "maps": [
+    {
+      "id": "aufbau-eroberung",
+      "file": "board.json",
+      "defaultRule": "domination"
+    }
+  ],
+  "rules": [
+    {
+      "id": "domination",
+      "name": "Aufbau & Eroberung",
+      "description": "Freie Länder, Einheimische und ausbaubare Burgen.",
+      "setup": "frontier",
+      "goals": [
+        "domination",
+        "capital"
+      ],
+      "buildings": true,
+      "experience": true,
+      "revealedAttack": true,
+      "connectedMovement": true,
+      "buildingNames": [
+        "Holzhütte",
+        "Palisade",
+        "Steinburg",
+        "Festung",
+        "Bastion",
+        "Zitadelle"
+      ],
+      "buildingTurns": [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "starThresholds": [
+        1,
+        3,
+        5
+      ],
+      "helpModule": "rules-help.mjs",
+      "preview": true,
+      "natives": {
+        "threatGap": 2,
+        "threatRounds": 3,
+        "quietRounds": 5,
+        "initialMin": 1,
+        "initialMax": 3,
+        "threatMin": 1,
+        "threatMax": 3,
+        "quietMin": 0,
+        "quietMax": 2,
+        "survivalMin": 1,
+        "survivalMax": 3,
+        "raidMinTroops": 11,
+        "raidTargetMax": 3,
+        "raidRatio": 4,
+        "raidChance": 3
+      },
+      "previewText": "Aufbau & Eroberung befindet sich in Entwicklung. Regeln und Spielbalance können sich ändern.",
+      "startingCountries": 5,
+      "startingArmy": 20
+    }
+  ]
+}

@@ -541,3 +541,10 @@ body.start-screen{position:fixed;inset:0;overflow:hidden;overscroll-behavior:non
 .start-screen .marker .land-name{transform:translateY(20px)}
 
 .rules-tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20px}.rules-tabs [role=tab]{flex:1;min-height:48px;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:#edf0e8;color:var(--ink);font-size:14px}.rules-tabs [aria-selected=true]{background:#192c30;color:#fff7dd;border-color:#192c30}.rules-tabs small{display:block;margin-top:4px;font-size:10px;font-weight:normal}.rules-tabs [role=tab]:focus-visible{outline:2px solid #ae813e;outline-offset:3px}.rules-preview{padding:12px;border:1px solid #b59036;border-radius:7px;background:#f2ecd9}#modal-content [role=tabpanel][hidden]{display:none}
+
+/* The same font stack supports Latin, simplified Chinese and Japanese. */
+.language-picker{display:flex;align-items:center;gap:5px;flex-shrink:0;margin:0}
+.language-picker select{width:auto;max-width:115px;margin:0;padding:6px 18px 6px 6px;font-size:12px;border:1px solid var(--line);background:var(--paper,#f5f1e6);color:var(--ink);border-radius:5px}
+:lang(zh),:lang(ja){font-family:system-ui,"Noto Sans CJK SC","Noto Sans CJK JP","PingFang SC","Hiragino Kaku Gothic ProN","Microsoft YaHei",sans-serif;letter-spacing:normal}
+:lang(zh) .eyebrow,:lang(ja) .eyebrow,:lang(zh) .dice-label,:lang(ja) .dice-label{letter-spacing:.5px}
+@media(max-width:520px){.language-picker{gap:2px}.language-picker select{max-width:76px;font-size:11px;padding:5px 2px}.topbar nav{gap:5px}}

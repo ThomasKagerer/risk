@@ -1,10 +1,12 @@
+import { configureContent, installedRules, installedPackages, mapConfig, ruleConfig, hasFeature, registerRuleHelp } from './content.mjs';
+import { initializeLanguageUI, serverText, localizeBoard, currentLocale, localize as tr } from './i18n.mjs';
 import { cardValue, progressiveCardValue, fixedCardValues } from './card-values.mjs';
 import { mapPieces, inspectPiece, unitInfoHTML } from './unit-info.mjs';
 import { createFigurePlacement } from './figure-placement.mjs';
 import { maxAttackDice, armyExperience, experienceBadges } from './experience.mjs';
 import { buildingPanel } from './building-panel.mjs';
 import { rulesTabsHTML, bindRulesTabs } from './rules.mjs';
-import { buildingInfo, buildingDescription, mapBuilding, buildingArtworkTroops } from './buildings.mjs';
+import { buildingNames, buildingInfo, buildingDescription, mapBuilding, buildingArtworkTroops } from './buildings.mjs';
 import { startScreenMarkup, bindStartScreen } from './start-screen.mjs';
 import { createMobileHUD } from './mobile-hud.mjs';
 import { maxDefenseDice, selectedDice, botController, attackRollRevealed, waitForDice } from './combat-ui.mjs';
@@ -24,11 +26,13 @@ import { controlledContinents, continentSelection } from './continents.mjs';
 // Frame restores can deliver the module while the HTML parser is rebuilding.
 if(document.readyState==='loading')await new Promise(resolve=>document.addEventListener('DOMContentLoaded',resolve,{once:true}));
 
+initializeLanguageUI();
+
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 const escapeHTML = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const colors = ['#b84e40','#477ca0','#b59036','#6c8753','#896b91','#ad7350','#414e4b'];
-const kindNames = {infantry:'Infanterie',cavalry:'Kavallerie',artillery:'Artillerie',wild:'Joker'};
+const kindNames = {infantry:tr('Infanterie'),cavalry:tr('Kavallerie'),artillery:tr('Artillerie'),wild:tr('Joker')};
 const icon = (kind, cls='') => `<svg class="${cls}" viewBox="0 0 25 30" aria-hidden="true" fill="currentColor">${symbols[kind] || symbols.infantry}</svg>`;
 let board, terrainData, boardCatalog={}, boardInitialized=false, state = null, selected = 0, target = 0, diceChoice = 3, defenseChoice = 3, amount = 1;
 let connectionEpoch=0;
@@ -84,7 +88,7 @@ const country = id => board.countries[id-1];
 const own = id => state && id>0 && state.territories[id-1].owner===state.me;
 const isHost = () => state && (state.controller ?? state.me)===0;
 const meActing = () => state && !state.paused && state.actor===state.me;
-const phaseNames = {lobby:'Wartezimmer',claim:'Gebiete wählen',capital:'Hauptstadt wählen',setup:'Armeen aufstellen',reinforce:'Verstärkung',attack:'Angriff',defend:'Verteidigung',occupy:'Gebiet erobert',fortify:'Truppen bewegen',finished:'Partie beendet.'};
+const phaseNames = {lobby:tr('Wartezimmer'),claim:tr('Gebiete wählen'),capital:tr('Hauptstadt wählen'),setup:tr('Armeen aufstellen'),reinforce:tr('Verstärkung'),attack:tr('Angriff'),defend:tr('Verteidigung'),occupy:tr('Gebiet erobert'),fortify:tr('Truppen bewegen'),finished:tr('Partie beendet.')};
 const displayColor = i => state?.players[i]?.neutral ? colors[6] : (i<6?colors[i]:`hsl(${(i*137.508)%360} 43% 40%)`);
 const autoCombat = createAutoCombat({
   getState:()=>state,country,canAct:()=>!busy&&!animating&&!state?.paused,act,
@@ -93,13 +97,13 @@ const autoCombat = createAutoCombat({
 });
 function stopAutoCombat(){
   autoCombat.stop();
-  toast('Automatik gestoppt. Ein bereits geworfener Angriff wird noch ausgewertet.');
+  toast(tr('Automatik gestoppt. Ein bereits geworfener Angriff wird noch ausgewertet.'));
 }
 $('#stop-auto-overlay').onclick=stopAutoCombat;
 async function api(path, body, signal) {
   const r=await fetch(path,{method:body?'POST':'GET',credentials:'same-origin',cache:'no-store',signal,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
-  let data;try{data=await r.json();}catch{const e=new Error(r.redirected?'Bitte erneut über Cloudflare anmelden.':'Der Server antwortet nicht. Bitte Verbindung prüfen.');e.authRequired=r.redirected;throw e;}
-  if(!r.ok){const e=new Error(data.error || 'Anfrage fehlgeschlagen.');e.status=r.status;e.authRequired=data.authRequired;throw e;}return data;
+  let data;try{data=await r.json();}catch{const e=new Error(r.redirected?tr('Bitte erneut über Cloudflare anmelden.'):tr('Der Server antwortet nicht. Bitte Verbindung prüfen.'));e.authRequired=r.redirected;throw e;}
+  if(!r.ok){const e=new Error(serverText(data.error || tr('Anfrage fehlgeschlagen.')));e.status=r.status;e.authRequired=data.authRequired;throw e;}return data;
 }
 async function act(type,extra={}) {
   if(busy||(animating&&!['autodefense','pause'].includes(type))||(state?.paused&&!['pause','autodefense'].includes(type)))return false;busy=true;const epoch=connectionEpoch;
@@ -111,13 +115,13 @@ function advancePhase() {
   if(busy||animating||!state||state.paused||!meActing())return;
   if(state.phase!=='fortify'||state.conquered)return act('next');
   const {code,revision,me}=state,epoch=connectionEpoch;
-  openModal('Zug ohne Eroberung beenden?', '<p>Du hast in diesem Zug kein Land erobert. Deshalb erhältst du <strong>keine Gebietskarte</strong>. Möchtest du den Zug trotzdem beenden?</p><div class="modal-actions turn-confirm-actions"><button class="primary" id="cancel-end-turn">Abbrechen</button><button class="secondary" id="confirm-end-turn">Trotzdem beenden</button></div>');
+  openModal(tr('Zug ohne Eroberung beenden?'), tr('<p>Du hast in diesem Zug kein Land erobert. Deshalb erhältst du <strong>keine Gebietskarte</strong>. Möchtest du den Zug trotzdem beenden?</p><div class="modal-actions turn-confirm-actions"><button class="primary" id="cancel-end-turn">Abbrechen</button><button class="secondary" id="confirm-end-turn">Trotzdem beenden</button></div>'));
   $('#cancel-end-turn').onclick=()=>$('#modal').close();
   $('#confirm-end-turn').onclick=async e=>{
     if(busy||animating)return;
     // A delayed confirmation must never end another turn or a newer game state.
     if(epoch!==connectionEpoch||!state||state.code!==code||state.revision!==revision||state.me!==me||state.phase!=='fortify'||state.paused||!meActing()){
-      $('#modal').close();toast('Der Spielstand hat sich geändert. Bitte prüfe deinen Zug erneut.');return;
+      $('#modal').close();toast(tr('Der Spielstand hat sich geändert. Bitte prüfe deinen Zug erneut.'));return;
     }
     e.currentTarget.disabled=true;$('#modal').close();await act('next');
   };
@@ -132,12 +136,12 @@ function connect(next) {
   lastBattle=next.battle?.id||0;lastAttackRoll=next.pending?.id||0;state=null;restoreView(next);receive(next);stream?.close();
   stream=new EventSource(`/api/rooms/${roomCode}/events`);
   stream.onmessage=e=>receive(JSON.parse(e.data));
-  stream.onopen=()=>{const el=$('#connection');el.hidden=false;el.textContent='Verbunden';el.classList.remove('offline');};
-  stream.addEventListener('replaced',()=>{autoCombat.stop();stream.close();const el=$('#connection');el.hidden=false;el.textContent='In anderem Tab aktiv';el.classList.add('offline');toast('Diese Partie ist in zwei neueren Tabs geöffnet. Klicke auf Neu verbinden, um hier weiterzuspielen.');});
+  stream.onopen=()=>{const el=$('#connection');el.hidden=false;el.textContent=tr('Verbunden');el.classList.remove('offline');};
+  stream.addEventListener('replaced',()=>{autoCombat.stop();stream.close();const el=$('#connection');el.hidden=false;el.textContent=tr('In anderem Tab aktiv');el.classList.add('offline');toast(tr('Diese Partie ist in zwei neueren Tabs geöffnet. Klicke auf Neu verbinden, um hier weiterzuspielen.'));});
   stream.addEventListener('removed',removedFromGame);
   stream.addEventListener('closed',()=>roomClosed(next.code));
-  stream.addEventListener('auth-expired',()=>{autoCombat.stop();stream.close();$('#connection').textContent='Anmeldung abgelaufen';$('#connection').classList.add('offline');toast('Deine Anmeldung ist abgelaufen. Klicke auf Neu verbinden.');});
-  stream.onerror=()=>{autoCombat.stop('Automatik gestoppt: Die Verbindung wurde unterbrochen.');const el=$('#connection');el.hidden=false;el.textContent='Verbinde erneut …';el.classList.add('offline');};
+  stream.addEventListener('auth-expired',()=>{autoCombat.stop();stream.close();$('#connection').textContent=tr('Anmeldung abgelaufen');$('#connection').classList.add('offline');toast(tr('Deine Anmeldung ist abgelaufen. Klicke auf Neu verbinden.'));});
+  stream.onerror=()=>{autoCombat.stop(tr('Automatik gestoppt: Die Verbindung wurde unterbrochen.'));const el=$('#connection');el.hidden=false;el.textContent=tr('Verbinde erneut …');el.classList.add('offline');};
 }
 function saveView(){
   if(!state)return;
@@ -159,14 +163,14 @@ function fetchRoom(code){
   });
 }
 async function resumeFromLink(code){
-  $('#room-label').textContent=`PARTIE ${code}`;
-  $('#board-title').textContent='Deine Partie wird fortgesetzt.';
-  $('#sidebar').innerHTML='<div class="panel loading" role="status">Dein Spielerplatz und Spielstand werden geladen …</div>';
+  $('#room-label').textContent=tr`PARTIE ${code}`;
+  $('#board-title').textContent=tr('Deine Partie wird fortgesetzt.');
+  $('#sidebar').innerHTML=tr('<div class="panel loading" role="status">Dein Spielerplatz und Spielstand werden geladen …</div>');
   try{connect(await fetchRoom(code));}
   catch(e){
     if(e.status===410){roomClosed(code);return;}
-    if(e.status===401&&!e.authRequired){renderHome();toast('Öffne die Partie mit derselben Cloudflare-E-Mail oder im bisherigen Browser.');return;}
-    $('#sidebar').innerHTML=`<div class="panel"><span class="eyebrow">PARTIE ${code}</span><h2>${e.authRequired?'Bitte erneut anmelden.':'Partie noch nicht verbunden.'}</h2><p>${escapeHTML(e.message)}</p><button class="primary" id="retry-room">${e.authRequired?'Anmelden und fortsetzen':'Erneut verbinden'}</button><a class="text-link" href="/">Zur Startseite</a></div>`;
+    if(e.status===401&&!e.authRequired){renderHome();toast(tr('Öffne die Partie mit derselben Cloudflare-E-Mail oder im bisherigen Browser.'));return;}
+    $('#sidebar').innerHTML=tr`<div class="panel"><span class="eyebrow">PARTIE ${code}</span><h2>${e.authRequired?tr('Bitte erneut anmelden.'):tr('Partie noch nicht verbunden.')}</h2><p>${escapeHTML(e.message)}</p><button class="primary" id="retry-room">${e.authRequired?tr('Anmelden und fortsetzen'):tr('Erneut verbinden')}</button><a class="text-link" href="/">Zur Startseite</a></div>`;
     $('#retry-room').onclick=()=>e.authRequired?location.reload():resumeFromLink(code);
   }
 }
@@ -182,13 +186,13 @@ function removedFromGame(){
   if(localStorage.getItem('dom-room')===roomCode)localStorage.removeItem('dom-room');
   roomCode='';history.replaceState(null,'',location.pathname);$('#modal').close();
   $('#connection').hidden=true;$('#reconnect').hidden=true;render();
-  openModal('Aus der Partie entfernt.', '<p>Der Gastgeber hat dich aus dieser Partie entfernt. Du kannst eine neue Partie erstellen oder einer anderen beitreten.</p>');
+  openModal(tr('Aus der Partie entfernt.'), tr('<p>Der Gastgeber hat dich aus dieser Partie entfernt. Du kannst eine neue Partie erstellen oder einer anderen beitreten.</p>'));
 }
 async function reconnect(code=roomCode){
   if(!code)return;
   autoCombat.stop();
   const button=$('#reconnect');button.disabled=true;
-  try{connect(await fetchRoom(code));toast('Wieder verbunden.');}
+  try{connect(await fetchRoom(code));toast(tr('Wieder verbunden.'));}
   catch(e){if(e.status===410){roomClosed(code);return;}if(e.authRequired||e instanceof TypeError){location.reload();return;}if(e.status===403&&code===roomCode){removedFromGame();return;}toast(e.message);}
   finally{button.disabled=false;}
 }
@@ -202,19 +206,19 @@ function roomClosed(code,notify=true){
     stream?.close();resetLiveView();state=null;selected=0;target=0;roomCode='';battleFocus='';
     history.replaceState(null,'',location.pathname);$('#modal').close();
     $('#connection').hidden=true;$('#reconnect').hidden=true;render();
-    if(notify)openModal('Partie beendet.', '<p>Der Gastgeber hat diese Partie beendet und aus der Übersicht entfernt. Du kannst eine neue Partie erstellen oder einer anderen beitreten.</p>');
+    if(notify)openModal(tr('Partie beendet.'), tr('<p>Der Gastgeber hat diese Partie beendet und aus der Übersicht entfernt. Du kannst eine neue Partie erstellen oder einer anderen beitreten.</p>'));
   }else loadMyRooms();
 }
 function confirmCloseRoom(code){
-  openModal(`Partie ${code} entfernen?`, '<p>Damit beendest du die Partie für alle Mitspieler und entfernst sie aus „Deine Partien“. Auch die Bots hören auf zu spielen.</p><div class="modal-actions"><button class="primary red" id="confirm-close-room">Beenden und entfernen</button><button class="secondary" id="cancel-close-room">Abbrechen</button></div>');
+  openModal(tr`Partie ${code} entfernen?`, tr('<p>Damit beendest du die Partie für alle Mitspieler und entfernst sie aus „Deine Partien“. Auch die Bots hören auf zu spielen.</p><div class="modal-actions"><button class="primary red" id="confirm-close-room">Beenden und entfernen</button><button class="secondary" id="cancel-close-room">Abbrechen</button></div>'));
   $('#cancel-close-room').onclick=()=>$('#modal').close();
   $('#confirm-close-room').onclick=async e=>{
     const button=e.currentTarget;button.disabled=true;
     try{
       await api(`/api/rooms/${code}/close`,{});
-      roomClosed(code,false);$('#modal').close();toast('Partie beendet und entfernt.');
+      roomClosed(code,false);$('#modal').close();toast(tr('Partie beendet und entfernt.'));
     }catch(error){
-      if(error.status===410||error.status===404){roomClosed(code,false);$('#modal').close();toast('Diese Partie ist bereits entfernt.');}
+      if(error.status===410||error.status===404){roomClosed(code,false);$('#modal').close();toast(tr('Diese Partie ist bereits entfernt.'));}
       else toast(error.message);
     }finally{button.disabled=false;}
   };
@@ -223,40 +227,42 @@ async function loadMyRooms(){
   const el=$('#saved-games');if(!el||!serverConfig.email)return;
   try{
     const rooms=await api('/api/rooms');if(!el.isConnected)return;
-    el.innerHTML=`<span class="eyebrow">DEINE PARTIEN</span><p class="account-email">Angemeldet als <strong>${escapeHTML(serverConfig.email)}</strong></p>${rooms.length?rooms.map(r=>`<div class="saved-room-row"><button class="saved-room" data-resume="${r.code}"><span><strong>${r.code} · ${escapeHTML(r.name)}</strong><small>${escapeHTML(boardCatalog[r.map]?.name||'Klassische Welt')} · ${phaseNames[r.phase]||''}${r.round?' · Runde '+r.round:''}</small></span><span>Fortsetzen →</span></button>${r.canClose?`<button class="saved-room-close" data-close-room="${r.code}" aria-label="Partie ${r.code} beenden und entfernen">${['lobby','finished'].includes(r.phase)?'Löschen':'Beenden'}</button>`:''}</div>`).join(''):'<p class="fine">Deine Partien erscheinen hier automatisch. Für eine ältere Partie öffne sie einmal im bisherigen Browser.</p>'}`;
+    el.innerHTML=tr`<span class="eyebrow">DEINE PARTIEN</span><p class="account-email">Angemeldet als <strong>${escapeHTML(serverConfig.email)}</strong></p>${rooms.length?rooms.map(r=>tr`<div class="saved-room-row"><button class="saved-room" data-resume="${r.code}"><span><strong>${r.code} · ${escapeHTML(r.name)}</strong><small>${escapeHTML(tr(boardCatalog[r.map]?.name)||tr('Klassische Welt'))} · ${phaseNames[r.phase]||''}${r.round?tr(' · Runde ')+r.round:''}</small></span><span>Fortsetzen →</span></button>${r.canClose?tr`<button class="saved-room-close" data-close-room="${r.code}" aria-label="Partie ${r.code} beenden und entfernen">${['lobby','finished'].includes(r.phase)?tr('Löschen'):tr('Beenden')}</button>`:''}</div>`).join(''):tr('<p class="fine">Deine Partien erscheinen hier automatisch. Für eine ältere Partie öffne sie einmal im bisherigen Browser.</p>')}`;
     $$('[data-resume]',el).forEach(b=>b.onclick=()=>reconnect(b.dataset.resume));
     $$('[data-close-room]',el).forEach(b=>b.onclick=()=>confirmCloseRoom(b.dataset.closeRoom));
-  }catch(e){if(el.isConnected)el.innerHTML=`<p class="fine">${escapeHTML(e.message)}</p><button id="reload-games" class="secondary">Erneut laden</button>`;$('#reload-games')?.addEventListener('click',loadMyRooms);}
+  }catch(e){if(el.isConnected)el.innerHTML=tr`<p class="fine">${escapeHTML(e.message)}</p><button id="reload-games" class="secondary">Erneut laden</button>`;$('#reload-games')?.addEventListener('click',loadMyRooms);}
 }
 function managePlayers(){
   if(!state||!isHost())return;
-  openModal('Spieler verwalten',`<p>Benenne Bots und Menschen an diesem Gerät. ${state.phase==='lobby'?'Entfernte Mitspieler können dieser Partie nicht erneut beitreten.':'Wenn du einen Mitspieler entfernst, übernimmt der Strategie-Bot seine Armee.'}</p><div class="manage-list">${state.players.map((p,i)=>!i||p.neutral?'':`<div class="manage-row"><span>${escapeHTML(p.name)}${p.bot?' · KI':p.local?' · dieses Gerät':''}</span><div class="manage-actions">${p.bot||p.local?`<button class="secondary" data-rename-bot="${i}" aria-label="${escapeHTML(p.name)} umbenennen">Name ändern</button>`:''}${!p.bot||state.phase==='lobby'?`<button class="secondary" data-kick="${i}">Entfernen</button>`:''}</div></div>`).join('')||'<p>Noch keine Mitspieler.</p>'}</div><div class="room-close-section"><button class="secondary danger-text" id="close-current-room">Partie beenden und entfernen</button></div>`);
+  openModal(tr('Spieler verwalten'),tr`<p>Benenne Bots und Menschen an diesem Gerät. ${state.phase==='lobby'?tr('Entfernte Mitspieler können dieser Partie nicht erneut beitreten.'):tr('Wenn du einen Mitspieler entfernst, übernimmt der Strategie-Bot seine Armee.')}</p><div class="manage-list">${state.players.map((p,i)=>!i||p.neutral?'':`<div class="manage-row"><span>${escapeHTML(p.name)}${p.bot?tr(' · KI'):p.local?tr(' · dieses Gerät'):''}</span><div class="manage-actions">${p.bot||p.local?tr`<button class="secondary" data-rename-bot="${i}" aria-label="${escapeHTML(p.name)} umbenennen">Name ändern</button>`:''}${!p.bot||state.phase==='lobby'?tr`<button class="secondary" data-kick="${i}">Entfernen</button>`:''}</div></div>`).join('')||tr('<p>Noch keine Mitspieler.</p>')}</div><div class="room-close-section"><button class="secondary danger-text" id="close-current-room">Partie beenden und entfernen</button></div>`);
   $('#close-current-room').onclick=()=>confirmCloseRoom(state.code);
   $$('[data-rename-bot]').forEach(button=>button.onclick=()=>renameBot(+button.dataset.renameBot));
   $$('[data-kick]').forEach(button=>button.onclick=()=>{
     const player=+button.dataset.kick,p=state.players[player],type=p.bot?'removebot':'kick';
-    openModal(`${p.name} entfernen?`,`<p>${state.phase==='lobby'?'Der Platz wird frei.':'Der Strategie-Bot übernimmt die Armee und spielt weiter.'} ${!p.bot&&!p.local?'Der Zugriff dieses Mitspielers auf die Partie wird gesperrt.':''}</p><div class="modal-actions"><button id="confirm-kick" class="primary">Jetzt entfernen</button><button id="cancel-kick" class="secondary">Abbrechen</button></div>`);
+    openModal(tr`${p.name} entfernen?`,tr`<p>${state.phase==='lobby'?tr('Der Platz wird frei.'):tr('Der Strategie-Bot übernimmt die Armee und spielt weiter.')} ${!p.bot&&!p.local?tr('Der Zugriff dieses Mitspielers auf die Partie wird gesperrt.'):''}</p><div class="modal-actions"><button id="confirm-kick" class="primary">Jetzt entfernen</button><button id="cancel-kick" class="secondary">Abbrechen</button></div>`);
     $('#cancel-kick').onclick=managePlayers;
-    $('#confirm-kick').onclick=async()=>{const b=$('#confirm-kick');if(!state||!isHost()||state.players[player]?.name!==p.name||state.players[player]?.bot!==p.bot){toast('Die Spielerliste hat sich geändert.');managePlayers();return;}b.disabled=true;if(await act(type,{player})){$('#modal').close();toast(`${p.name} wurde entfernt.`);}else{b.disabled=false;}};
+    $('#confirm-kick').onclick=async()=>{const b=$('#confirm-kick');if(!state||!isHost()||state.players[player]?.name!==p.name||state.players[player]?.bot!==p.bot){toast(tr('Die Spielerliste hat sich geändert.'));managePlayers();return;}b.disabled=true;if(await act(type,{player})){$('#modal').close();toast(tr`${p.name} wurde entfernt.`);}else{b.disabled=false;}};
   });
 }
 function renameBot(player){
   const p=state?.players[player];if(!isHost()||!(p?.bot||p?.local)||p.neutral)return;
-  openModal('Spieler benennen',`<form id="rename-bot-form"><label for="bot-name">Name des Spielers</label><input id="bot-name" maxlength="24" autocomplete="off" value="${escapeHTML(p.name)}" required><div class="modal-actions"><button class="primary" type="submit">Namen speichern</button><button class="secondary" type="button" id="cancel-rename">Abbrechen</button></div></form>`);
+  openModal(tr('Spieler benennen'),tr`<form id="rename-bot-form"><label for="bot-name">Name des Spielers</label><input id="bot-name" maxlength="24" autocomplete="off" value="${escapeHTML(p.name)}" required><div class="modal-actions"><button class="primary" type="submit">Namen speichern</button><button class="secondary" type="button" id="cancel-rename">Abbrechen</button></div></form>`);
   $('#bot-name').focus();$('#bot-name').select();$('#cancel-rename').onclick=()=>$('#modal').close();
   $('#rename-bot-form').onsubmit=async e=>{
     e.preventDefault();
-    if(!isHost()||state.players[player]?.name!==p.name||state.players[player]?.bot!==p.bot){toast('Die Spielerliste hat sich geändert.');managePlayers();return;}
-    await withForm(e.currentTarget,async()=>{if(await act(p.local?'renamelocal':'renamebot',{player,name:$('#bot-name').value.trim()})){$('#modal').close();toast('Spielername gespeichert.');}});
+    if(!isHost()||state.players[player]?.name!==p.name||state.players[player]?.bot!==p.bot){toast(tr('Die Spielerliste hat sich geändert.'));managePlayers();return;}
+    await withForm(e.currentTarget,async()=>{if(await act(p.local?'renamelocal':'renamebot',{player,name:$('#bot-name').value.trim()})){$('#modal').close();toast(tr('Spielername gespeichert.'));}});
   };
 }
 function switchLocalPlayer(next){
   if(!state || state.me===next.me)return;
   chosenCards=[];placementQueue=[];autoDefenseDraft=null;selected=0;target=0;amount=1;diceContexts=['',''];
   $('#modal').close();autoCombat.stop();
-  if(next.hotseat&&next.actor===next.me)toast(`${next.players[next.me].name} ist dran${next.phase==='defend'?' · Verteidigung':''}.`);
+  if(next.hotseat&&next.actor===next.me)toast(tr`${next.players[next.me].name} ist dran${next.phase==='defend'?tr(' · Verteidigung'):''}.`);
 }
 function receive(next) {
+  // Neutral army names are system labels; human and renamed bot names stay verbatim.
+  next.players.forEach(p=>{if(p.neutral)p.name=tr(p.name);});
   if(next.revision<=(state?.revision||0))return;
   if(next.paused){
     // Pause messages bypass the animation queue. Already applied server rolls
@@ -302,7 +308,7 @@ function receive(next) {
     Promise.resolve(overview).then(()=>{if(epoch===connectionEpoch&&state===next)focusBattle(country(next.pending.from),country(next.pending.to),matchMedia('(prefers-reduced-motion: reduce)').matches);});
   }
 }
-function render() {$('#choose-map').textContent=state?'Neue Partie · Karte wählen ↗':'Spielkarte wählen ↗';$('#choose-map').href=state?'/?choose-map=1':'#map-choice';renderPlayers();renderStatistics();renderMap();renderSidebar();renderHand();$('#room-label').innerHTML=state?`PARTIE <b>${state.code}</b> · ${state.rules==='classic'?'Klassisch':state.rules==='domination'?'Aufbau & Eroberung':'Bisherige Regeln'} &nbsp; · &nbsp; ${state.goal==='capital'?'Hauptstadt · ':state.goal==='mission'?'Mission · ':''}${state.mode==='fixed'?'Feste Kartenboni':'Steigende Kartenboni'}`:`${board.countries.length} Gebiete. Eine Welt.`;$('#round-label').textContent=state&&state.phase!=='lobby'?`RUNDE ${String(state.round).padStart(2,'0')} · ${state.paused?'PAUSIERT':phaseNames[state.phase].toUpperCase()}`:'DAS SPIELBRETT';$('#board-title').textContent=state?.paused?'Partie pausiert.':state?.phase==='finished'?`${state.players[state.winner].name} gewinnt.`:state?.phase==='lobby'?'Der Tisch ist bereit.':state?state.turn===state.me?'Dein nächster Zug.':`${state.players[state.actor].name} ist am Zug.`:'Die Welt liegt vor dir.';syncMobileHUD();refreshBuildingPanel();}
+function render() {$('#choose-map').textContent=state?tr('Neue Partie · Karte wählen ↗'):tr('Spielkarte wählen ↗');$('#choose-map').href=state?'/?choose-map=1':'#map-choice';renderPlayers();renderStatistics();renderMap();renderSidebar();renderHand();$('#room-label').innerHTML=state?tr`PARTIE <b>${state.code}</b> · ${escapeHTML(tr(ruleConfig(state).name||'Bisherige Regeln'))} &nbsp; · &nbsp; ${state.goal==='capital'?tr('Hauptstadt · '):state.goal==='mission'?tr('Mission · '):''}${state.mode==='fixed'?tr('Feste Kartenboni'):tr('Steigende Kartenboni')}`:tr`${board.countries.length} Gebiete. Eine Welt.`;$('#round-label').textContent=state&&state.phase!=='lobby'?tr`RUNDE ${String(state.round).padStart(2,'0')} · ${state.paused?tr('PAUSIERT'):phaseNames[state.phase].toUpperCase()}`:tr('DAS SPIELBRETT');$('#board-title').textContent=state?.paused?tr('Partie pausiert.'):state?.phase==='finished'?tr`${state.players[state.winner].name} gewinnt.`:state?.phase==='lobby'?tr('Der Tisch ist bereit.'):state?state.turn===state.me?tr('Dein nächster Zug.'):tr`${state.players[state.actor].name} ist am Zug.`:tr('Die Welt liegt vor dir.');syncMobileHUD();refreshBuildingPanel();}
 function renderStatistics(){
   const panel=$('#game-statistics');
   panel.hidden=state?.phase!=='finished';
@@ -315,13 +321,13 @@ function botPlayerDetail(p) {
 }
 function renderPlayers() {
   renderAutoDefenseSettings();renderPauseControls();
-  $('#players').innerHTML=state?state.players.map((p,i)=>`<div class="player ${p.neutral?'neutral-player':''} ${state.turn===i&&state.phase!=='lobby'?'active':''} ${!p.territories&&!['lobby','claim'].includes(state.phase)?'eliminated':''}" style="--player:${displayColor(i)}"><div class="player-name"><i class="player-color"></i>${escapeHTML(p.name)}${p.neutral?'<span class="you-tag neutral-tag">Neutral</span>':i===state.me?`<span class="you-tag">${state.hotseat?'Am Gerät':'Du'}</span>`:p.local||state.hotseat&&i===state.controller?`<span class="you-tag">${state.hotseat?'Am Gerät':'Beim Gastgeber'}</span>`:p.bot?`<span class="bot-tag">${botController(p).label}</span>`:''}</div><div class="player-stats"><span><strong>${p.territories}</strong> Gebiete</span><span><strong>${p.troops}</strong> Truppen</span>${!p.neutral?`<span>▱ ${p.cards}</span>`:''}</div>${playerContinents(i)}${botPlayerDetail(p)}</div>`).join('')+(isHost()&&state.phase!=='finished'?'<button id="manage-players" class="manage-players">Spieler verwalten</button>':''):'';
+  $('#players').innerHTML=state?state.players.map((p,i)=>tr`<div class="player ${p.neutral?'neutral-player':''} ${state.turn===i&&state.phase!=='lobby'?'active':''} ${!p.territories&&!['lobby','claim'].includes(state.phase)?'eliminated':''}" style="--player:${displayColor(i)}"><div class="player-name"><i class="player-color"></i>${escapeHTML(p.name)}${p.neutral?tr('<span class="you-tag neutral-tag">Neutral</span>'):i===state.me?`<span class="you-tag">${state.hotseat?tr('Am Gerät'):tr('Du')}</span>`:p.local||state.hotseat&&i===state.controller?`<span class="you-tag">${state.hotseat?tr('Am Gerät'):tr('Beim Gastgeber')}</span>`:p.bot?`<span class="bot-tag">${botController(p).label}</span>`:''}</div><div class="player-stats"><span><strong>${p.territories}</strong> Gebiete</span><span><strong>${p.troops}</strong> Truppen</span>${!p.neutral?`<span>▱ ${p.cards}</span>`:''}</div>${playerContinents(i)}${botPlayerDetail(p)}</div>`).join('')+(isHost()&&state.phase!=='finished'?tr('<button id="manage-players" class="manage-players">Spieler verwalten</button>'):''):'';
   $('#manage-players')?.addEventListener('click',managePlayers);
   for(const card of $$('.player',$('#players'))){
     const player=[...card.parentElement.querySelectorAll('.player')].indexOf(card);
     card.setAttribute('role','button');card.tabIndex=0;card.dataset.playerStatistics=player;
-    card.setAttribute('aria-haspopup','dialog');card.setAttribute('aria-label',`${state.players[player].name}: Statistik und Verstärkungen ansehen`);
-    card.insertAdjacentHTML('beforeend','<span class="player-statistics-link">Statistik &amp; Verstärkungen ↗</span>');
+    card.setAttribute('aria-haspopup','dialog');card.setAttribute('aria-label',tr`${state.players[player].name}: Statistik und Verstärkungen ansehen`);
+    card.insertAdjacentHTML('beforeend',tr('<span class="player-statistics-link">Statistik &amp; Verstärkungen ↗</span>'));
     card.addEventListener('click',()=>showPlayerStatistics(player));
     card.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();showPlayerStatistics(player);}});
   }
@@ -329,7 +335,7 @@ function renderPlayers() {
 }
 function showPlayerStatistics(player){
   if(!state?.players[player])return;
-  openModal(`${state.players[player].name} · Statistik`,playerStatisticsHTML(state,board,player));
+  openModal(tr`${state.players[player].name} · Statistik`,playerStatisticsHTML(state,board,player));
 }
 function refreshPlayerStatistics(){
   if(!$('#modal')?.open)return;
@@ -340,7 +346,7 @@ function refreshPlayerStatistics(){
   const expanded=new Set($$('details[open]',section).map(node=>node.dataset.incomeRound));
   const focused=document.activeElement?.closest('[data-income-round]')?.dataset.incomeRound;
   const scroll=$('#modal').scrollTop;
-  $('#modal-title').textContent=`${state.players[player].name} · Statistik`;
+  $('#modal-title').textContent=tr`${state.players[player].name} · Statistik`;
   $('#modal-content').innerHTML=playerStatisticsHTML(state,board,player,{expanded});
   if(focused)$(`#modal [data-income-round="${focused}"] summary`)?.focus({preventScroll:true});
   $('#modal').scrollTop=scroll;
@@ -348,16 +354,16 @@ function refreshPlayerStatistics(){
 function playerContinents(owner) {
   if(state.players[owner].neutral||state.phase==='lobby')return '';
   const owned=controlledContinents(board,state,owner);
-  return `<div class="player-continents" aria-label="Vollständig eroberte Kontinente">${owned.length?owned.map(c=>`<span class="continent-badge" style="--continent:${continentColors[c.id-1]}" title="${escapeHTML(c.name)} vollständig erobert: +${c.bonus} Verstärkungen pro Runde">${escapeHTML(c.name)} <b>+${c.bonus}</b></span>`).join(''):'<span class="no-continents">Noch kein Kontinent</span>'}</div>`;
+  return tr`<div class="player-continents" aria-label="Vollständig eroberte Kontinente">${owned.length?owned.map(c=>tr`<span class="continent-badge" style="--continent:${continentColors[c.id-1]}" title="${escapeHTML(c.name)} vollständig erobert: +${c.bonus} Verstärkungen pro Runde">${escapeHTML(c.name)} <b>+${c.bonus}</b></span>`).join(''):tr('<span class="no-continents">Noch kein Kontinent</span>')}</div>`;
 }
 function initContinents() {
   $('#continent-borders').innerHTML=board.continents.map(c=>`<g data-continent-region="${c.id}"><path class="continent-border-halo" d="${c.outline}"/><path class="continent-border" d="${c.outline}"/></g>`).join('');
   $('#continent-labels').innerHTML=board.continents.map(c=>{
     const [x,y]=c.labelPosition;
-    const lines=c.name==='Österreich-Ungarn'?['Österreich-','Ungarn']:c.name.includes(' ')?c.name.split(' '):[c.name];
+    const lines=c.name==='Österreich-Ungarn'?[tr('Österreich-'),tr('Ungarn')]:c.name.includes(' ')?c.name.split(' '):[c.name];
     return `<g data-continent-label="${c.id}">${c.labelAnchor?`<path class="continent-leader" d="M${x} ${y}L${c.labelAnchor.join(' ')}"/>`:''}<g transform="translate(${x} ${y})"><text class="continent-name">${lines.map((line,i)=>`<tspan x="0" dy="${i?14:lines.length>1?-5:0}">${escapeHTML(line)}</tspan>`).join('')}</text></g></g>`;
   }).join('');
-  $('#continents').innerHTML='<p class="continent-key-hint">Kontinente · darüberfahren zum Hervorheben · antippen zum Anzeigen</p>'+board.continents.map((c,i)=>`<button type="button" class="continent" data-continent="${c.id}" style="--continent:${continentColors[i]}" aria-pressed="false" aria-controls="world" aria-label="${escapeHTML(c.name)}, Bonus +${c.bonus}, auf der Karte hervorheben">${escapeHTML(c.name)}<b>+${c.bonus}</b></button>`).join('');
+  $('#continents').innerHTML=tr('<p class="continent-key-hint">Kontinente · darüberfahren zum Hervorheben · antippen zum Anzeigen</p>')+board.continents.map((c,i)=>tr`<button type="button" class="continent" data-continent="${c.id}" style="--continent:${continentColors[i]}" aria-pressed="false" aria-controls="world" aria-label="${escapeHTML(c.name)}, Bonus +${c.bonus}, auf der Karte hervorheben">${escapeHTML(c.name)}<b>+${c.bonus}</b></button>`).join('');
   for(const button of $$('[data-continent]',$('#continents'))){
     const id=+button.dataset.continent;
     button.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch')continentFocus.hover(id);});
@@ -381,11 +387,11 @@ function updateContinentHighlight(active,pinned) {
 }
 function setBoard(id){
   cameraMotion++;battleFocus='';
-  board=boardCatalog[id];camera={zoom:1,x:0,y:0};selected=0;target=0;chosenCards=[];
+  board=localizeBoard(boardCatalog[id]);camera={zoom:1,x:0,y:0};selected=0;target=0;chosenCards=[];
   initBoard();if(fullscreenMap())camera=overviewCamera();applyCamera();
 }
 function seaRoutesMarkup(map) {
-  return map.routes.map(([a,b])=>{
+  return (map.routes||[]).map(([a,b])=>{
     const c=map.countries.find(c=>c.id===a),d=map.countries.find(c=>c.id===b),wrap=map.wrapRoute??[1,38];
     const path=map.routePaths?.[`${a}-${b}`]||(a===wrap[0]&&b===wrap[1]
       ?`M${c.x} ${c.y} Q22 59 -10 69 M${d.x} ${d.y} Q${map.width-30} 55 ${map.width+10} 69`
@@ -415,9 +421,9 @@ function initBoard() {
   if(!boardInitialized){$('#world').addEventListener('click',e=>{if(dragMoved||e.detail>1)return;activateMapTarget(e.target);});
   $('#world').addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();activateMapTarget(e.target);}});
   initZoom();boardInitialized=true;}
-  $('#world').setAttribute('aria-label',`Spielbrett mit ${board.countries.length} wählbaren Gebieten`);
-  $('.board-edition').innerHTML=`${escapeHTML(board.name||'Klassische Welt').toUpperCase()} <b>${board.countries.length}</b>`;
-  $('#focus-territory').innerHTML='<option value="">Gebiet finden …</option>'+board.continents.map(cont=>`<optgroup label="${escapeHTML(cont.name)}">${board.countries.filter(c=>c.continent===cont.id).map(c=>`<option value="${c.id}">${escapeHTML(c.name)}${c.aliases?.length?' · '+escapeHTML(c.aliases.join(', ')):''}</option>`).join('')}</optgroup>`).join('');
+  $('#world').setAttribute('aria-label',tr`Spielbrett mit ${board.countries.length} wählbaren Gebieten`);
+  $('.board-edition').innerHTML=`${escapeHTML(board.name||tr('Klassische Welt')).toUpperCase()} <b>${board.countries.length}</b>`;
+  $('#focus-territory').innerHTML=tr('<option value="">Gebiet finden …</option>')+board.continents.map(cont=>`<optgroup label="${escapeHTML(cont.name)}">${board.countries.filter(c=>c.continent===cont.id).map(c=>`<option value="${c.id}">${escapeHTML(c.name)}${c.aliases?.length?' · '+escapeHTML(c.aliases.join(', ')):''}</option>`).join('')}</optgroup>`).join('');
   $('#focus-territory').onchange=e=>{const id=+e.target.value;if(!id)return;cameraMotion++;const c=country(id),z=Math.min(board.maxZoom||6,Math.max(3,4/(c.armyScale||1)));const area=cameraBounds();camera={zoom:z,x:area.x+area.width/2-c.x*z,y:area.y+area.height/2-c.y*z};applyCamera();if(state?.phase==='fortify'&&meActing()){selectTerritory(id);return;}selected=id;target=0;renderMap();if(state)renderSidebar();};
   renderMap();
 }
@@ -438,7 +444,7 @@ function eligible(id) {
 function renderMap() {
   $('#world').classList.toggle('fortifying',state?.phase==='fortify'&&meActing()&&!state.moved);
   $('#ownership-key').hidden=!state?.players.some(p=>p.neutral&&p.territories>0);
-  $('#native-key-label').textContent=state?.setup==='frontier'?'Einheimische':'Neutrale Armee';
+  $('#native-key-label').textContent=state?.setup==='frontier'?tr('Einheimische'):tr('Neutrale Armee');
   board.countries.forEach(c=>{
     const t=state?.territories[c.id-1],{land,marker,circle,count,ownerName,markerTitle}=territoryNodes.get(c.id);
     const native=Boolean(t&&state.players[t.owner]?.neutral);
@@ -447,18 +453,18 @@ function renderMap() {
     setAttributeChanged(land,'style',occupied?`--owner-color:${displayColor(t.owner)}`:'');
     land.classList.toggle('native',native);marker.classList.toggle('native',native);
     setAttributeChanged(land,'fill',native?'url(#native-hatch)':continentColors[c.continent-1]);
-    setTextChanged(markerTitle,native?`${c.name}: ${state.players[t.owner].name} · kein Spieler · ${t.troops} Einheiten`:c.name);
+    setTextChanged(markerTitle,native?tr`${c.name}: ${state.players[t.owner].name} · kein Spieler · ${t.troops} Einheiten`:c.name);
     land.classList.toggle('selected',c.id===selected);land.classList.toggle('target',c.id===target);land.classList.toggle('eligible',eligible(c.id));
     marker.classList.toggle('selected',c.id===selected||c.id===target);
-    marker.classList.toggle('capital',isCapital(c.id)&&state.rules!=='domination');
-    const building=$('.map-building',marker),buildingKey=occupied&&state.rules==='domination'?JSON.stringify([t.buildingLevel,t.construction?.level,t.construction?.remaining,t.troops,armyExperience(t).bonus,isCapital(c.id)]):'';
+    marker.classList.toggle('capital',isCapital(c.id)&&!hasFeature(state,'buildings'));
+    const building=$('.map-building',marker),buildingKey=occupied&&hasFeature(state,'buildings')?JSON.stringify([t.buildingLevel,t.construction?.level,t.construction?.remaining,t.troops,armyExperience(t).bonus,isCapital(c.id)]):'';
     if(building.dataset.key!==buildingKey){building.innerHTML=buildingKey?mapBuilding(t,isCapital(c.id)):'';building.dataset.key=buildingKey;}
     building.toggleAttribute('hidden',!buildingKey);
     marker.classList.toggle('with-building',Boolean(buildingKey));
     setAttributeChanged(building,'tabindex',buildingKey?'0':'-1');
-    setAttributeChanged(building,'aria-label',buildingKey?`${c.name}: ${buildingDescription(t,isCapital(c.id))} · Gebäude öffnen`:'');
+    setAttributeChanged(building,'aria-label',buildingKey?tr`${c.name}: ${buildingDescription(t,isCapital(c.id))} · Gebäude öffnen`:'');
     if(buildingKey)setTextChanged(markerTitle,`${c.name}: ${buildingDescription(t,isCapital(c.id))}`);
-    setAttributeChanged(land,'aria-label',`${c.name}${t&&t.owner>=0?`, ${state.players[t.owner].name}${native?' (kein Spieler)':''}, ${t.troops} Einheiten`: ', unbesetzt'}`);
+    setAttributeChanged(land,'aria-label',`${c.name}${t&&t.owner>=0?tr`, ${state.players[t.owner].name}${native?tr(' (kein Spieler)'):''}, ${t.troops} Einheiten`: tr(', unbesetzt')}`);
     setAttributeChanged(circle,'fill',t&&t.owner>=0?displayColor(t.owner):'#5a6252');
     setAttributeChanged(circle,'r',t&&t.owner>=0?'10':'2.3');
     setTextChanged(count,t&&t.owner>=0?t.troops:'');
@@ -482,8 +488,8 @@ function armyMarkup(t,c) {
   const members=mapPieces(t.troops),pieces=members.map(p=>p.value),n=t.troops-pieces.reduce((sum,value)=>sum+value,0);
   const movable=t.owner===state?.me && !['lobby','finished'].includes(state.phase);
   const banner=state.players[t.owner]?.neutral?countryBanner(c):bannerCountries.get(t.owner)===c.id?state.players[t.owner]?.name:'';
-  const experience=state.rules==='domination'?t.experience||[]:null;
-  const figures=pieces.map((v,i)=>{const p=piecePosition(t,c,i,pieces.length);return `<g data-id="${c.id}" data-piece="${i}" data-x="${p.x}" data-y="${p.y}" class="army-figure ${movable?'movable':''}" transform="${pieceTransform(c,p)}" ${movable||state.rules==='domination'?'tabindex="0" role="button"':''} aria-label="${escapeHTML(c.name)}: Figur mit ${v} ${v===1?'Einheit':'Einheiten'} · Informationen${movable?' und verschieben':''}"><g class="army-miniature"><circle class="piece-hit" cx="0" cy="-4" r="6"/><g transform="translate(-5 -11) scale(.4)" class="army-piece" fill="${displayColor(t.owner)}"><use href="#piece-${v===10?'artillery':v===5?'cavalry':'infantry'}" stroke="#f9f1d6" stroke-width=".7"/>${i===0&&banner?playerBanner(banner,v===10?'artillery':v===5?'cavalry':'infantry'):''}</g><g class="map-unit-experience" transform="scale(.38)">${experienceBadges(members[i],experience)}</g></g></g>`;}).join('');
+  const experience=hasFeature(state,'experience')?t.experience||[]:null;
+  const figures=pieces.map((v,i)=>{const p=piecePosition(t,c,i,pieces.length);return tr`<g data-id="${c.id}" data-piece="${i}" data-x="${p.x}" data-y="${p.y}" class="army-figure ${movable?'movable':''}" transform="${pieceTransform(c,p)}" ${movable||hasFeature(state,'experience')?'tabindex="0" role="button"':''} aria-label="${escapeHTML(c.name)}: Figur mit ${v} ${v===1?tr('Einheit'):tr('Einheiten')} · Informationen${movable?tr(' und verschieben'):''}"><g class="army-miniature"><circle class="piece-hit" cx="0" cy="-4" r="6"/><g transform="translate(-5 -11) scale(.4)" class="army-piece" fill="${displayColor(t.owner)}"><use href="#piece-${v===10?'artillery':v===5?'cavalry':'infantry'}" stroke="#f9f1d6" stroke-width=".7"/>${i===0&&banner?playerBanner(banner,v===10?'artillery':v===5?'cavalry':'infantry'):''}</g><g class="map-unit-experience" transform="scale(.38)">${experienceBadges(members[i],experience)}</g></g></g>`;}).join('');
   return figures+(n?`<text x="17" y="30" fill="#152e32" font-size="5" font-weight="600">+${n}</text><g class="map-unit-experience" transform="translate(19 43) scale(.38)">${experienceBadges({units:Array.from({length:n},(_,i)=>t.troops-n+i)},experience)}</g>`:'');
 }
 const pieceFrame=frameBatch(()=>{if(pieceDrag)pieceDrag.node.setAttribute('transform',pieceTransform(country(pieceDrag.id),pieceDrag.last));});
@@ -505,7 +511,7 @@ function updateZoomDetails(){
   armies.setVisible(detail&&Boolean(state));
   markerRoot.classList.toggle('detail',detail);
   markerRoot.classList.toggle('close-detail',camera.zoom>=4);
-  $('#units').classList.toggle('show-experience',camera.zoom>=4&&state?.rules==='domination');
+  $('#units').classList.toggle('show-experience',camera.zoom>=4&&hasFeature(state,'experience'));
   setAttributeChanged($('#world'),'data-detail',terrainDetail(camera.zoom));
   const scale=markerScale(camera.zoom,pixelsPerUnit);
   if(scale!==lastMarkerScale){
@@ -513,9 +519,9 @@ function updateZoomDetails(){
     $('#continent-labels').style.setProperty('--continent-label-scale',scale);
     markerRoot.style.setProperty('--marker-scale',scale);lastMarkerScale=scale;
   }
-  setTextChanged(mapHint,!!board.artwork?.startsWith('historical-')?(camera.zoom>=8?'Siedlungen · Infanterie 1 / Reiter 5 / Geschütz 10':camera.zoom>=4?'Wälder & Gebirge · Näher zoomen für Siedlungen':detail?'Flüsse & Gebirge · Näher zoomen für Wälder':mobileHUD.active?'2 Finger: Karte & Zoom · 1 Finger: Figuren':'2 Finger: Karte · 1 Finger: eigene Figuren'):detail?'Infanterie 1 · Kavallerie 5 · Artillerie 10':mobileHUD.active?'2 Finger: Karte & Zoom · 1 Finger: Figuren':'2 Finger: Karte · 1 Finger: eigene Figuren');
+  setTextChanged(mapHint,!!board.artwork?.startsWith('historical-')?(camera.zoom>=8?tr('Siedlungen · Infanterie 1 / Reiter 5 / Geschütz 10'):camera.zoom>=4?tr('Wälder & Gebirge · Näher zoomen für Siedlungen'):detail?tr('Flüsse & Gebirge · Näher zoomen für Wälder'):mobileHUD.active?tr('2 Finger: Karte & Zoom · 1 Finger: Figuren'):tr('2 Finger: Karte · 1 Finger: eigene Figuren')):detail?tr('Infanterie 1 · Kavallerie 5 · Artillerie 10'):mobileHUD.active?tr('2 Finger: Karte & Zoom · 1 Finger: Figuren'):tr('2 Finger: Karte · 1 Finger: eigene Figuren'));
 }
-function connected(from,to) {if(state.rules==='classic')return own(from)&&own(to)&&country(from).neighbors.includes(to);const seen=new Set([from]),queue=[from];while(queue.length){const id=queue.shift();if(id===to)return true;for(const nb of country(id).neighbors)if(!seen.has(nb)&&own(nb)){seen.add(nb);queue.push(nb);}}return false;}
+function connected(from,to) {if(!hasFeature(state,'connectedMovement'))return own(from)&&own(to)&&country(from).neighbors.includes(to);const seen=new Set([from]),queue=[from];while(queue.length){const id=queue.shift();if(id===to)return true;for(const nb of country(id).neighbors)if(!seen.has(nb)&&own(nb)){seen.add(nb);queue.push(nb);}}return false;}
 function canMoveFrom(id){return own(id)&&state.territories[id-1].troops>1&&country(id).neighbors.some(own);}
 function inspectFigure(id,piece){
   inspectedUnit=inspectPiece(state,id,piece);
@@ -525,7 +531,7 @@ function inspectFigure(id,piece){
 }
 function activateMapTarget(node){
   const figure=node?.closest('.army-figure');
-  if(figure&&state?.rules==='domination'){inspectFigure(Number(figure.dataset.id),Number(figure.dataset.piece));return true;}
+  if(figure&&hasFeature(state,'experience')){inspectFigure(Number(figure.dataset.id),Number(figure.dataset.piece));return true;}
   const building=node?.closest('[data-building-id]');
   if(building){openBuilding(Number(building.dataset.buildingId));return true;}
   const id=Number(node?.closest('[data-id]')?.dataset.id);
@@ -535,13 +541,13 @@ function activateMapTarget(node){
 function selectTerritory(id) {
   inspectedUnit=null;
   if(state?.paused&&id){selected=id;target=0;renderMap();renderSidebar();return;}
-  if(autoCombat.active){toast('Stoppe zuerst die Automatik, um ein anderes Land zu wählen.');return;}
+  if(autoCombat.active){toast(tr('Stoppe zuerst die Automatik, um ein anderes Land zu wählen.'));return;}
   if(!id||animating)return;if(busy){if(placing&&id===selected)placePiece(1);return;}sound('select');
   if(!state||state.phase==='lobby'){selected=id;renderMap();return;}
   if(state.phase==='claim'){if(meActing()&&state.territories[id-1]?.owner<0)act('claim',{territory:id});return;}
   if(state.phase==='setup'&&meActing()&&canPlaceHere(id,1)){selected=id;placePiece(1);return;}
   if(id===selected&&canPlaceHere(id,1)){placePiece(1);return;}
-  if(['defend','occupy'].includes(state.phase)){toast('Beende zuerst die aktuelle Kampfaktion.');return;}
+  if(['defend','occupy'].includes(state.phase)){toast(tr('Beende zuerst die aktuelle Kampfaktion.'));return;}
   if(state.phase==='fortify'&&meActing()){
     if(state.moved||!own(id))return;
     if(canMoveFrom(selected)){
@@ -563,7 +569,7 @@ function placementReserve(){
   return 0;
 }
 function placementOwner(){return state.me;}
-function canPlaceHere(id,n){return Boolean(state&&!state.paused&&['setup','reinforce'].includes(state.phase)&&state.territories[id-1]?.owner===placementOwner()&&placementReserve()>=n&&(state.phase!=='setup'||state.setup==='frontier'||n===1));}
+function canPlaceHere(id,n){return Boolean(state&&!state.paused&&['setup','reinforce'].includes(state.phase)&&state.territories[id-1]?.owner===placementOwner()&&placementReserve()>=n&&(state.phase!=='setup'||state.setup==='frontier'||state.multiPlacement||n===1));}
 async function placePiece(n){
   if(!canPlaceHere(selected,n))return;
   if(placing){if(placementQueue.length<32)placementQueue.push(n);return;}
@@ -577,26 +583,21 @@ async function placePiece(n){
     }while(n!==undefined);
   }finally{placing=false;placementQueue=[];}
 }
-function placementButtons(){return `<div class="placement-pieces" role="group" aria-label="Figur platzieren">${[['infantry','Infanterie',1],['cavalry','Pferd',5],['artillery','Kanone',10]].map(([kind,name,n])=>`<button class="placement-piece" data-place-piece="${n}" aria-label="${name} platzieren: ${n} ${n===1?'Einheit':'Einheiten'}" ${canPlaceHere(selected,n)?'':`disabled title="${!selected?'Wähle zuerst ein eigenes Gebiet':state.phase==='setup'&&state.setup!=='frontier'&&n>1?'Klassisch verteilt Starteinheiten einzeln':`${n} Einheiten in der Reserve benötigt`}"`}>${icon(kind)}<strong>${name}</strong><span>${n} ${n===1?'Einheit':'Einheiten'}</span></button>`).join('')}</div>`;}
+function placementButtons(){return tr`<div class="placement-pieces" role="group" aria-label="Figur platzieren">${[['infantry',tr('Infanterie'),1],['cavalry',tr('Pferd'),5],['artillery',tr('Kanone'),10]].map(([kind,name,n])=>tr`<button class="placement-piece" data-place-piece="${n}" aria-label="${name} platzieren: ${n} ${n===1?tr('Einheit'):tr('Einheiten')}" ${canPlaceHere(selected,n)?'':`disabled title="${!selected?tr('Wähle zuerst ein eigenes Gebiet'):state.phase==='setup'&&state.setup!=='frontier'&&!state.multiPlacement&&n>1?tr('Klassisch verteilt Starteinheiten einzeln'):tr`${n} Einheiten in der Reserve benötigt`}"`}>${icon(kind)}<strong>${name}</strong><span>${n} ${n===1?tr('Einheit'):tr('Einheiten')}</span></button>`).join('')}</div>`;}
 function mapPicker(){
-  return `<fieldset id="map-choice" class="map-picker"><legend>Spielkarte wählen</legend>${[
-    ['europe1871','Europa um 1871','71 Gebiete','Deutsches Reich, Österreich-Ungarn und der Balkan. Nur Europa.'],
-    ['world120','Welt um 1700','120 Gebiete','Bayern, Schweiz, Moskowien & Singapura. Mit Landschaftsdetails.'],
-    ['classic','Klassische Welt','42 Gebiete','42 große Spielregionen. Kartendaten aus dem Domination-Projekt.'],
-    ['simple-world','Mini-Welt','20 Gebiete','Sechs Kontinente, klare Seewege. Australien mit nur einem Zugang.'],
-  ].map(([id,name,count,description])=>{
-    const b=boardCatalog[id];
-    return `<label class="map-option"><input type="radio" name="map" value="${id}" ${id===(board.id||'classic')?'checked':''} aria-label="${name} · ${count}"><svg class="map-thumbnail" viewBox="0 0 800 500" aria-hidden="true">${seaRoutesMarkup(b)}${b.countries.map(c=>`<path d="${c.path}" fill="${continentColors[c.continent-1]}" stroke="#fff7dd" stroke-width="1"/>`).join('')}</svg><span class="map-option-copy"><strong>${name}</strong><span>${count}</span><small>${description}</small></span></label>`;
+  return tr`<fieldset id="map-choice" class="map-picker"><legend>Spielkarte wählen</legend>${Object.values(boardCatalog).map(b=>{
+    const id=b.id,name=tr(b.name),count=`${b.countries.length} ${tr('Gebiete')}`,description=tr(b.description||'');
+    return `<label class="map-option"><input type="radio" name="map" value="${id}" ${id===(board.id||'classic')?'checked':''} aria-label="${name} · ${count}"><svg class="map-thumbnail" viewBox="0 0 800 500" aria-hidden="true">${seaRoutesMarkup(b)}${b.countries.map(c=>`<path d="${c.path}" fill="${continentColors[c.continent-1]}" stroke="#fff7dd" stroke-width="1"/>`).join('')}</svg><span class="map-option-copy"><strong>${name}</strong><span>${count}${installedPackages().some(p=>p.maps.some(m=>m.id===id))?' · DLC':''}</span><small>${description}</small></span></label>`;
   }).join('')}</fieldset>`;
 }
 function renderHome() {
   const code=roomCodeFromHash(location.hash);
-  $('#sidebar').innerHTML=startScreenMarkup({mapPicker:mapPicker(),description:board.description||'Eine vereinfachte Weltkarte mit 42 Spielgebieten.',name:localStorage.getItem('dom-name')||'',email:serverConfig.email,lastRoom:localStorage.getItem('dom-room'),code});
-  bindStartScreen($('#sidebar'),{code,mapName:()=>board.name||'Klassische Welt',onCreate:async form=>{
+  $('#sidebar').innerHTML=startScreenMarkup({mapPicker:mapPicker(),description:board.description||tr('Eine vereinfachte Weltkarte mit 42 Spielgebieten.'),name:localStorage.getItem('dom-name')||'',email:serverConfig.email,lastRoom:localStorage.getItem('dom-room'),code});
+  bindStartScreen($('#sidebar'),{code,mapName:()=>board.name||tr('Klassische Welt'),onCreate:async form=>{
     const name=$('#player-name').value.trim();localStorage.setItem('dom-name',name);
     await withForm(form,async()=>connect(await api('/api/rooms',{name,rules:$('#game-rules').value,mode:$('#card-mode').value,goal:$('#game-goal').value,map:$('input[name=map]:checked').value,players:draftPlayers})));
   }});
-  $('#map-choice').onchange=e=>{if(e.target.name!=='map')return;setBoard(e.target.value);$('#room-label').textContent=`${board.countries.length} Gebiete. Eine Welt.`;$('#map-description').textContent=board.description||'Eine vereinfachte Weltkarte mit 42 Spielgebieten.';};
+  $('#map-choice').onchange=e=>{if(e.target.name!=='map')return;setBoard(e.target.value);const defaultRule=mapConfig(e.target.value).defaultRule;if(defaultRule){$('#game-rules').value=defaultRule;$('#game-rules').onchange();}$('#room-label').textContent=tr`${board.countries.length} Gebiete. Eine Welt.`;$('#map-description').textContent=board.description||tr('Eine vereinfachte Weltkarte mit 42 Spielgebieten.');};
   $('#add-draft-human').onclick=()=>{if(draftPlayers.length<5){draftPlayers.push({kind:'human',name:''});renderPlayerDraft();}};
   $('#add-draft-bot').onclick=()=>{if(draftPlayers.length<5){draftPlayers.push({kind:'local',name:''});renderPlayerDraft();}};renderPlayerDraft();
   $('#join-form').onsubmit=async e=>{e.preventDefault();const name=$('#join-name').value.trim();localStorage.setItem('dom-name',name);await withForm(e.currentTarget,async()=>connect(await api(`/api/rooms/${$('#join-code').value.trim().toUpperCase()}/join`,{name})));};
@@ -604,43 +605,43 @@ function renderHome() {
   loadMyRooms();
 }
 async function withForm(form,fn) {const b=$('button[type=submit]',form)||$('button',form);b.disabled=true;try{await fn();}catch(e){toast(e.message);}finally{b.disabled=false;}}
-function botTypeOptions(value='local'){return `<option value="local" ${value==='local'?'selected':''}>Lokaler Strategie-Bot</option><option value="berserker" ${value==='berserker'?'selected':''}>Ragnar · Berserker (Angriff ab 3 Einheiten)</option><option value="annoying" ${value==='annoying'?'selected':''}>Klaus Störtebeker · Störenfried (Angriff ab 4 Einheiten)</option>`;}
-const playerTypeOptions=value=>`<option value="human" ${value==='human'?'selected':''}>Mensch · dieses Gerät</option>${botTypeOptions(value)}`;
-const defaultBotName=kind=>kind==='human'?'Name des Mitspielers':kind==='berserker'?'Ragnar':kind==='annoying'?'Klaus Störtebeker':'Strategie-Bot';
+function botTypeOptions(value='local'){return tr`<option value="local" ${value==='local'?'selected':''}>Lokaler Strategie-Bot</option><option value="berserker" ${value==='berserker'?'selected':''}>Ragnar · Berserker (Angriff ab 3 Einheiten)</option><option value="annoying" ${value==='annoying'?'selected':''}>Klaus Störtebeker · Störenfried (Angriff ab 4 Einheiten)</option>`;}
+const playerTypeOptions=value=>tr`<option value="human" ${value==='human'?'selected':''}>Mensch · dieses Gerät</option>${botTypeOptions(value)}`;
+const defaultBotName=kind=>kind==='human'?tr('Name des Mitspielers'):kind==='berserker'?'Ragnar':kind==='annoying'?tr('Klaus Störtebeker'):'Strategie-Bot';
 function renderPlayerDraft(){
-  $('#draft-bots').innerHTML=draftPlayers.map((b,i)=>`<div class="bot-row bot-draft"><label for="draft-bot-name-${i}">Spieler ${i+2} · Name<input id="draft-bot-name-${i}" data-bot-name="${i}" maxlength="24" autocomplete="off" placeholder="${defaultBotName(b.kind)}" value="${escapeHTML(b.name)}" ${b.kind==='human'?'required':''}></label><select data-bot-type="${i}" aria-label="Spielertyp für Spieler ${i+2}">${playerTypeOptions(b.kind)}</select><button type="button" data-remove-draft="${i}" class="remove-bot" aria-label="Spieler ${i+2} entfernen">×</button></div>`).join('');
+  $('#draft-bots').innerHTML=draftPlayers.map((b,i)=>tr`<div class="bot-row bot-draft"><label for="draft-bot-name-${i}">Spieler ${i+2} · Name<input id="draft-bot-name-${i}" data-bot-name="${i}" maxlength="24" autocomplete="off" placeholder="${defaultBotName(b.kind)}" value="${escapeHTML(b.name)}" ${b.kind==='human'?'required':''}></label><select data-bot-type="${i}" aria-label="Spielertyp für Spieler ${i+2}">${playerTypeOptions(b.kind)}</select><button type="button" data-remove-draft="${i}" class="remove-bot" aria-label="Spieler ${i+2} entfernen">×</button></div>`).join('');
   $('#add-draft-bot').disabled=$('#add-draft-human').disabled=draftPlayers.length>=5;
   $$('[data-bot-name]').forEach(el=>el.oninput=()=>{draftPlayers[+el.dataset.botName].name=el.value;});
   $$('[data-bot-type]').forEach(el=>el.onchange=()=>{draftPlayers[+el.dataset.botType].kind=el.value;const input=$(`#draft-bot-name-${el.dataset.botType}`);input.placeholder=defaultBotName(el.value);input.required=el.value==='human';});
   $$('[data-remove-draft]').forEach(el=>el.onclick=()=>{draftPlayers.splice(+el.dataset.removeDraft,1);renderPlayerDraft();});
 }
 function lobbyPlayer(p,i){
-  const name=isHost()&&(p.bot||p.local)?`<button class="lobby-bot-name" data-rename-bot="${i}" aria-label="${escapeHTML(p.name)} umbenennen">${escapeHTML(p.name)} <span aria-hidden="true">✎</span></button>`:`<span class="lobby-player-name">${escapeHTML(p.name)}</span>`;
-  return `<li><i class="player-color" style="--player:${colors[i]}"></i>${name}<span class="you-tag">${i===0?'Gastgeber':p.bot?'KI':p.local?'Dieses Gerät':i===state.me?'Du':''}</span>${i>0&&isHost()?`<button class="remove-bot" data-remove-bot="${i}" aria-label="${escapeHTML(p.name)} entfernen">×</button>`:''}</li>`;
+  const name=isHost()&&(p.bot||p.local)?tr`<button class="lobby-bot-name" data-rename-bot="${i}" aria-label="${escapeHTML(p.name)} umbenennen">${escapeHTML(p.name)} <span aria-hidden="true">✎</span></button>`:`<span class="lobby-player-name">${escapeHTML(p.name)}</span>`;
+  return `<li><i class="player-color" style="--player:${colors[i]}"></i>${name}<span class="you-tag">${i===0?tr('Gastgeber'):p.bot?'KI':p.local?tr('Dieses Gerät'):i===state.me?tr('Du'):''}</span>${i>0&&isHost()?tr`<button class="remove-bot" data-remove-bot="${i}" aria-label="${escapeHTML(p.name)} entfernen">×</button>`:''}</li>`;
 }
 function lobbyPlayerControls(){
-  return `<div class="lobby-bots"><label for="lobby-bot-name">Name des neuen Spielers</label><input id="lobby-bot-name" maxlength="24" autocomplete="off" placeholder="${defaultBotName(lobbyPlayerDraft.kind)}" value="${escapeHTML(lobbyPlayerDraft.name)}"><div class="bot-row"><select id="lobby-bot-type" aria-label="Art des neuen Spielers">${playerTypeOptions(lobbyPlayerDraft.kind)}</select><button class="add-bot" id="add-lobby-bot">+ Spieler</button></div></div>`;
+  return tr`<div class="lobby-bots"><label for="lobby-bot-name">Name des neuen Spielers</label><input id="lobby-bot-name" maxlength="24" autocomplete="off" placeholder="${defaultBotName(lobbyPlayerDraft.kind)}" value="${escapeHTML(lobbyPlayerDraft.name)}"><div class="bot-row"><select id="lobby-bot-type" aria-label="Art des neuen Spielers">${playerTypeOptions(lobbyPlayerDraft.kind)}</select><button class="add-bot" id="add-lobby-bot">+ Spieler</button></div></div>`;
 }
-function phaseSteps() {const i=['reinforce','attack','fortify'].indexOf(state.phase==='defend'||state.phase==='occupy'?'attack':state.phase);return `<div class="phase-steps">${['Verstärken','Angreifen','Bewegen'].map((s,k)=>`<span class="phase-step ${i===k?'current':''}"><b>${k+1}</b>${s}</span>`).join('')}</div>`;}
-function mountainNotice(id) {if(state.rules==='classic')return '';if(state.rules==='domination')return buildingInfo(state,id,isCapital(id));if(isCapital(id))return '<p class="terrain-bonus capital-notice"><span aria-hidden="true">♜</span> Hauptstadtfestung<small>1 Einheit: 2 Würfel · 2 Einheiten: 3 · ab 3: 4<br>Fällt deine Hauptstadt, scheidest du aus.</small></p>';return country(id)?.mountainous?'<p class="terrain-bonus"><span aria-hidden="true">▲</span> Extra Verteidigungswürfel wegen bergigem Gebiet<small>Bis zu 3 Würfel · höchstens einer pro Einheit</small></p>':'';}
-function selectedInfo() {if(!selected)return '';const c=country(selected),t=state.territories[selected-1];return `<div class="selected-territory"><strong>${c.name}</strong><small>${t.owner>=0?`${escapeHTML(state.players[t.owner].name)}${state.players[t.owner].neutral?' · kein Spieler':''} · ${t.troops} Einheiten`:'Freies Gebiet'}</small>${mountainNotice(selected)}</div>`;}
-function stepper(min,max) {amount=Math.max(min,Math.min(max,amount));return `<div class="stepper"><button id="less" aria-label="Eine Einheit weniger" ${amount<=min?'disabled':''}>−</button><input id="amount" type="number" min="${min}" max="${max}" value="${amount}" aria-label="Anzahl Einheiten"><button id="more" aria-label="Eine Einheit mehr" ${amount>=max?'disabled':''}>+</button></div>`;}
+function phaseSteps() {const i=['reinforce','attack','fortify'].indexOf(state.phase==='defend'||state.phase==='occupy'?'attack':state.phase);return `<div class="phase-steps">${[tr('Verstärken'),tr('Angreifen'),tr('Bewegen')].map((s,k)=>`<span class="phase-step ${i===k?'current':''}"><b>${k+1}</b>${s}</span>`).join('')}</div>`;}
+function mountainNotice(id) {if(state.rules==='classic')return '';if(hasFeature(state,'buildings'))return buildingInfo(state,id,isCapital(id));if(isCapital(id))return tr('<p class="terrain-bonus capital-notice"><span aria-hidden="true">♜</span> Hauptstadtfestung<small>1 Einheit: 2 Würfel · 2 Einheiten: 3 · ab 3: 4<br>Fällt deine Hauptstadt, scheidest du aus.</small></p>');return country(id)?.mountainous?tr('<p class="terrain-bonus"><span aria-hidden="true">▲</span> Extra Verteidigungswürfel wegen bergigem Gebiet<small>Bis zu 3 Würfel · höchstens einer pro Einheit</small></p>'):'';}
+function selectedInfo() {if(!selected)return '';const c=country(selected),t=state.territories[selected-1];return `<div class="selected-territory"><strong>${c.name}</strong><small>${t.owner>=0?tr`${escapeHTML(state.players[t.owner].name)}${state.players[t.owner].neutral?tr(' · kein Spieler'):''} · ${t.troops} Einheiten`:tr('Freies Gebiet')}</small>${mountainNotice(selected)}</div>`;}
+function stepper(min,max) {amount=Math.max(min,Math.min(max,amount));return tr`<div class="stepper"><button id="less" aria-label="Eine Einheit weniger" ${amount<=min?'disabled':''}>−</button><input id="amount" type="number" min="${min}" max="${max}" value="${amount}" aria-label="Anzahl Einheiten"><button id="more" aria-label="Eine Einheit mehr" ${amount>=max?'disabled':''}>+</button></div>`;}
 function movementAmount(min,max){
   const control=stepper(min,max);
-  return `${control}<div class="placement-pieces movement-pieces" role="group" aria-label="Truppenanzahl in Schritten erhöhen">${[['infantry','Einheit',1],['cavalry','Pferd',5],['artillery','Kanone',10]].map(([kind,name,n])=>`<button class="placement-piece" data-move-add="${n}" aria-label="${n} ${n===1?'Einheit':'Einheiten'} mehr auswählen" ${amount+n>max?'disabled':''}>${icon(kind)}<strong>${name}</strong><span>+${n} ${n===1?'Einheit':'Einheiten'}</span></button>`).join('')}</div>`;
+  return tr`${control}<div class="placement-pieces movement-pieces" role="group" aria-label="Truppenanzahl in Schritten erhöhen">${[['infantry',tr('Einheit'),1],['cavalry',tr('Pferd'),5],['artillery',tr('Kanone'),10]].map(([kind,name,n])=>tr`<button class="placement-piece" data-move-add="${n}" aria-label="${n} ${n===1?tr('Einheit'):tr('Einheiten')} mehr auswählen" ${amount+n>max?'disabled':''}>${icon(kind)}<strong>${name}</strong><span>+${n} ${n===1?tr('Einheit'):tr('Einheiten')}</span></button>`).join('')}</div>`;
 }
-function pair(from,to) {const a=country(from),b=country(to);return `<div class="attack-pair"><div>${a.name}<strong>${state.territories[from-1].troops}</strong>Einheiten</div><span>→</span><div>${b.name}<strong>${state.territories[to-1].troops}</strong>Einheiten</div></div>`;}
+function pair(from,to) {const a=country(from),b=country(to);return tr`<div class="attack-pair"><div>${a.name}<strong>${state.territories[from-1].troops}</strong>Einheiten</div><span>→</span><div>${b.name}<strong>${state.territories[to-1].troops}</strong>Einheiten</div></div>`;}
 function smallDie(n=5){const pips={1:[[12,12]],2:[[7,7],[17,17]],3:[[7,7],[12,12],[17,17]],4:[[7,7],[17,7],[7,17],[17,17]],5:[[7,7],[17,7],[12,12],[7,17],[17,17]],6:[[7,6],[17,6],[7,12],[17,12],[7,18],[17,18]]}[n];return `<svg class="small-die" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>${pips.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.6" fill="currentColor"/>`).join('')}</svg>`;}
-function attackRollPreview(){const dice=state.pending?.attack;if(state.phase!=='defend'||!dice?.length)return '';if(!attackRollRevealed(state,lastAttackRoll))return '<div class="attack-roll" role="status"><span class="eyebrow">ANGRIFFSWURF</span><p>Die Würfel rollen …</p></div>';return `<div class="attack-roll"><span class="eyebrow">ANGRIFFSWURF</span><div class="attack-roll-dice" role="img" aria-label="Angriffswürfel: ${dice.join(', ')}">${dice.map(n=>`<span class="rolled-die">${smallDie(n)}</span>`).join('')}</div></div>`;}
-function choices(max,isDefense=false) {const slot=isDefense?1:0,context=`${state.code}:${state.revision}:${isDefense?'defend':selected+':'+target}:${max}`;if(isDefense)defenseChoice=selectedDice(diceContexts[slot],context,max,defenseChoice);else diceChoice=selectedDice(diceContexts[slot],context,max,diceChoice);diceContexts[slot]=context;return `<div class="dice-choice" aria-label="Anzahl Würfel">${Array.from({length:max},(_,i)=>`<button data-dice="${i+1}" class="${(isDefense?defenseChoice:diceChoice)===i+1?'chosen':''}" aria-label="${i+1} Würfel" aria-pressed="${(isDefense?defenseChoice:diceChoice)===i+1}" ${animating?'disabled':''}>${(i<6?smallDie(i+1):`<span class="dice-number">${i+1}</span>`)}</button>`).join('')}</div>`;}
+function attackRollPreview(){const dice=state.pending?.attack;if(state.phase!=='defend'||!dice?.length)return '';if(!attackRollRevealed(state,lastAttackRoll))return tr('<div class="attack-roll" role="status"><span class="eyebrow">ANGRIFFSWURF</span><p>Die Würfel rollen …</p></div>');return tr`<div class="attack-roll"><span class="eyebrow">ANGRIFFSWURF</span><div class="attack-roll-dice" role="img" aria-label="Angriffswürfel: ${dice.join(', ')}">${dice.map(n=>`<span class="rolled-die">${smallDie(n)}</span>`).join('')}</div></div>`;}
+function choices(max,isDefense=false) {const slot=isDefense?1:0,context=`${state.code}:${state.revision}:${isDefense?'defend':selected+':'+target}:${max}`;if(isDefense)defenseChoice=selectedDice(diceContexts[slot],context,max,defenseChoice);else diceChoice=selectedDice(diceContexts[slot],context,max,diceChoice);diceContexts[slot]=context;return tr`<div class="dice-choice" aria-label="Anzahl Würfel">${Array.from({length:max},(_,i)=>tr`<button data-dice="${i+1}" class="${(isDefense?defenseChoice:diceChoice)===i+1?'chosen':''}" aria-label="${i+1} Würfel" aria-pressed="${(isDefense?defenseChoice:diceChoice)===i+1}" ${animating?'disabled':''}>${(i<6?smallDie(i+1):`<span class="dice-number">${i+1}</span>`)}</button>`).join('')}</div>`;}
 function renderSidebar() {
   if(!state){renderHome();syncMobileHUD();return;}
   if(state.paused){
-    $('#sidebar').innerHTML=`<div class="panel paused-panel"><span class="eyebrow">PARTIE PAUSIERT</span><h2>Zeit für einen Überblick.</h2><p>${escapeHTML(state.players[state.pausedBy]?.name||'Ein Mitspieler')} hat die Partie pausiert. Alle Spielzüge und Bots stehen still. Du kannst die Karte ansehen, zoomen und Länder auswählen.</p>${selectedInfo()}<button class="primary" id="resume-game">▶ Partie fortsetzen</button></div>`;
+    $('#sidebar').innerHTML=tr`<div class="panel paused-panel"><span class="eyebrow">PARTIE PAUSIERT</span><h2>Zeit für einen Überblick.</h2><p>${escapeHTML(state.players[state.pausedBy]?.name||tr('Ein Mitspieler'))} hat die Partie pausiert. Alle Spielzüge und Bots stehen still. Du kannst die Karte ansehen, zoomen und Länder auswählen.</p>${selectedInfo()}<button class="primary" id="resume-game">▶ Partie fortsetzen</button></div>`;
     $$('[data-open-building]',$('#sidebar')).forEach(button=>button.onclick=()=>openBuilding(+button.dataset.openBuilding));renderCombat();$('#resume-game').onclick=togglePause;syncMobileHUD();return;
   }
   if(state.phase==='lobby'){
-    $('#sidebar').innerHTML=`<div class="panel"><span class="eyebrow">DEIN SPIELTISCH</span><h2>Alle an Bord?</h2><p>Menschen an diesem Gerät spielen hier abwechselnd. Für eigene Geräte teile den Link oder Raumcode.</p><div class="room-code">${state.code}</div><button class="secondary" id="copy-link">Einladungslink kopieren ↗</button><ul class="lobby-list">${state.players.map(lobbyPlayer).join('')}</ul>${isHost()?`${state.players.length<6?lobbyPlayerControls():''}<button class="primary" id="start-game" ${state.players.length<(state.goal==='mission'?3:2)?'disabled':''}>Mit ${state.players.length} Spielern starten</button>`:'<div class="waiting">Der Gastgeber startet die Partie.</div>'}<p class="fine">${state.mode==='fixed'?'Feste Kartenboni nach Symbolkombination.':'Steigende Kartenboni für alle Spieler gemeinsam.'} ${state.setup==='frontier'?`${board.id==='simple-world'?2:5} Länder wählen, danach ${board.id==='simple-world'?8:15} zusätzliche Einheiten verteilen. Einheimische: 1–3 Einheiten. Nachbarn mit mindestens 2 Einheiten mehr beschleunigen ihr Wachstum.`:state.players.length===2?'Zu zweit spielt eine neutrale Armee mit.':''}</p></div><div class="panel"><span class="eyebrow">DEIN ZIEL</span><h3>${state.goal==='capital'?'Die Hauptstädte.':state.goal==='mission'?'Deine geheime Mission.':'Die ganze Welt.'}</h3><p>${state.goal==='capital'?'Wähle nach deinen Startländern eine Hauptstadt. Verteidige ihre Burg: Fällt sie, scheidest du aus. Der Eroberer erhält deine Hauptstadt und Karten; deine übrigen Länder werden samt Armeen einheimisch. Start: Palisade mit drei Würfelplätzen, einer pro Verteidiger. Weitere Stufen kosten Einheiten und Bauzeit. ':''}${state.goal==='mission'?'Ab drei Spielern erhält jeder einen geheimen Auftrag. Wer ihn zuerst erfüllt, gewinnt. Länderziele und Regionen passen zur gewählten Karte.':`Besiege die anderen Spieler auf ${board.countries.length} Gebieten.`} ${state.setup==='frontier'?'Starke Einheimische können schwache Nachbarn angreifen und bei einer Eroberung zum Computergegner werden.':state.goal==='mission'?'Die Startländer werden zufällig verteilt.':'Im Duell genügt es, deinen Mitspieler zu besiegen.'}</p></div>`;
+    $('#sidebar').innerHTML=tr`<div class="panel"><span class="eyebrow">DEIN SPIELTISCH</span><h2>Alle an Bord?</h2><p>Menschen an diesem Gerät spielen hier abwechselnd. Für eigene Geräte teile den Link oder Raumcode.</p><div class="room-code">${state.code}</div><button class="secondary" id="copy-link">Einladungslink kopieren ↗</button><ul class="lobby-list">${state.players.map(lobbyPlayer).join('')}</ul>${isHost()?tr`${state.players.length<6?lobbyPlayerControls():''}<button class="primary" id="start-game" ${state.players.length<(state.goal==='mission'?3:2)?'disabled':''}>Mit ${state.players.length} Spielern starten</button>`:tr('<div class="waiting">Der Gastgeber startet die Partie.</div>')}<p class="fine">${state.mode==='fixed'?tr('Feste Kartenboni nach Symbolkombination.'):tr('Steigende Kartenboni für alle Spieler gemeinsam.')} ${state.setup==='frontier'?tr`${board.id==='simple-world'?2:5} Länder wählen, danach ${board.id==='simple-world'?8:15} zusätzliche Einheiten verteilen. Einheimische: 1–3 Einheiten. Nachbarn mit mindestens 2 Einheiten mehr beschleunigen ihr Wachstum.`:state.players.length===2?tr('Zu zweit spielt eine neutrale Armee mit.'):''}</p></div><div class="panel"><span class="eyebrow">DEIN ZIEL</span><h3>${state.goal==='capital'?tr('Die Hauptstädte.'):state.goal==='mission'?tr('Deine geheime Mission.'):tr('Die ganze Welt.')}</h3><p>${state.goal==='capital'?tr('Wähle nach deinen Startländern eine Hauptstadt. Verteidige ihre Burg: Fällt sie, scheidest du aus. Der Eroberer erhält deine Hauptstadt und Karten; deine übrigen Länder werden samt Armeen einheimisch. Start: Palisade mit drei Würfelplätzen, einer pro Verteidiger. Weitere Stufen kosten Einheiten und Bauzeit. '):''}${state.goal==='mission'?tr('Ab drei Spielern erhält jeder einen geheimen Auftrag. Wer ihn zuerst erfüllt, gewinnt. Länderziele und Regionen passen zur gewählten Karte.'):tr`Besiege die anderen Spieler auf ${board.countries.length} Gebieten.`} ${state.setup==='frontier'?tr('Starke Einheimische können schwache Nachbarn angreifen und bei einer Eroberung zum Computergegner werden.'):state.goal==='mission'?tr('Die Startländer werden zufällig verteilt.'):tr('Im Duell genügt es, deinen Mitspieler zu besiegen.')}</p></div>`;
     const lobbyScroll=document.createElement('div');lobbyScroll.className='lobby-scroll';
     lobbyScroll.append(...$('#sidebar').children);$('#sidebar').append(lobbyScroll);
     if($('#start-game')){const footer=document.createElement('footer');footer.className='start-footer';footer.append($('#start-game'));$('#sidebar').append(footer);}
@@ -654,58 +655,58 @@ function renderSidebar() {
   let content='',primary='',secondary='',min=1,max=1;
   const isMe=meActing(),myTurn=state.turn===state.me;
   const attackRolling=state.phase==='defend'&&!attackRollRevealed(state,lastAttackRoll);
-  if(state.phase==='finished'){content=`<span class="eyebrow">SIEG AUF GANZER LINIE</span><h2>${escapeHTML(state.players[state.winner].name)} gewinnt.</h2><p>${state.winningMission?`Mission erfüllt: ${escapeHTML(state.winningMission.description)}`:'Die letzte gegnerische Armee ist besiegt. Die Welt hat einen neuen Herrscher.'}</p><a class="primary" href="/" style="text-decoration:none">Neue Partie</a>${isHost()?'<button class="secondary danger-text" id="close-finished-room">Partie aus der Liste entfernen</button>':''}`;}
+  if(state.phase==='finished'){content=tr`<span class="eyebrow">SIEG AUF GANZER LINIE</span><h2>${escapeHTML(state.players[state.winner].name)} gewinnt.</h2><p>${state.winningMission?tr`Mission erfüllt: ${escapeHTML(serverText(state.winningMission.description,state.players.filter(p=>!p.neutral).map(p=>p.name)))}`:tr('Die letzte gegnerische Armee ist besiegt. Die Welt hat einen neuen Herrscher.')}</p><a class="primary" href="/" style="text-decoration:none">Neue Partie</a>${isHost()?tr('<button class="secondary danger-text" id="close-finished-room">Partie aus der Liste entfernen</button>'):''}`;}
   else if(!isMe){
-    content=`<span class="eyebrow">${state.paused?'PAUSIERT':phaseNames[state.phase].toUpperCase()}</span><h2>${escapeHTML(state.players[state.actor].name)} ist am Zug.</h2><p>${attackRolling?'Der Angriff würfelt. Danach ist die Verteidigung dran.':state.phase==='defend'?state.rules==='classic'?'Die Verteidigung wählt ihre Würfel. Danach würfeln beide Seiten.':'Der Angriff hat gewürfelt. Die Verteidigung wählt jetzt ihre Würfel.':'Du siehst alle Spielzüge live auf dem Brett. Plane in der Zwischenzeit deinen nächsten Zug.'}</p>${state.pending?pair(state.pending.from,state.pending.to):selectedInfo()}${attackRollPreview()}${state.pending?mountainNotice(state.pending.to):''}<div class="waiting">${attackRolling?'Warte auf das Würfelergebnis':state.players[state.actor].bot?'KI plant den nächsten Spielzug':state.phase==='defend'?'Warte auf Verteidigung':'Warte auf den nächsten Spielzug'}</div>`;
+    content=tr`<span class="eyebrow">${state.paused?tr('PAUSIERT'):phaseNames[state.phase].toUpperCase()}</span><h2>${escapeHTML(state.players[state.actor].name)} ist am Zug.</h2><p>${attackRolling?tr('Der Angriff würfelt. Danach ist die Verteidigung dran.'):state.phase==='defend'?state.rules==='classic'?tr('Die Verteidigung wählt ihre Würfel. Danach würfeln beide Seiten.'):tr('Der Angriff hat gewürfelt. Die Verteidigung wählt jetzt ihre Würfel.'):tr('Du siehst alle Spielzüge live auf dem Brett. Plane in der Zwischenzeit deinen nächsten Zug.')}</p>${state.pending?pair(state.pending.from,state.pending.to):selectedInfo()}${attackRollPreview()}${state.pending?mountainNotice(state.pending.to):''}<div class="waiting">${attackRolling?tr('Warte auf das Würfelergebnis'):state.players[state.actor].bot?tr('KI plant den nächsten Spielzug'):state.phase==='defend'?tr('Warte auf Verteidigung'):tr('Warte auf den nächsten Spielzug')}</div>`;
   } else switch(state.phase){
-    case 'capital':content=`<span class="eyebrow">DEIN LETZTER RÜCKHALT</span><h2>Wähle deine Hauptstadt.</h2><p>Wähle eines deiner Länder. Deine Hauptstadt beginnt mit einer Hütte samt Palisadenzaun und drei Würfelplätzen. Weitere Stufen musst du bauen. Wird deine Hauptstadt erobert, verlierst du.</p>${selectedInfo()}`;if(selected&&own(selected))primary='<button class="primary" id="choose-capital">Als Hauptstadt festlegen</button>';break;
-    case 'claim':content=`<span class="eyebrow">DIE WELT WIRD AUFGETEILT</span><h2>Wähle dein Gebiet.</h2><p>Klicke oder tippe auf ein freies Gebiet, um es sofort zu besetzen. Danach ist der nächste Spieler dran.</p>${state.setup==='frontier'?`<div class="claim-progress">${state.players[state.me].territories} / ${board.id==='simple-world'?2:5} Länder gewählt</div><p class="fine">Danach verteilst du ${board.id==='simple-world'?8:15} zusätzliche Einheiten. Die übrigen Länder erhalten 1–3 Einheimische.</p>`:''}`;break;
+    case 'capital':content=tr`<span class="eyebrow">DEIN LETZTER RÜCKHALT</span><h2>Wähle deine Hauptstadt.</h2><p>Wähle eines deiner Länder. Deine Hauptstadt beginnt mit einer Hütte samt Palisadenzaun und drei Würfelplätzen. Weitere Stufen musst du bauen. Wird deine Hauptstadt erobert, verlierst du.</p>${selectedInfo()}`;if(selected&&own(selected))primary=tr('<button class="primary" id="choose-capital">Als Hauptstadt festlegen</button>');break;
+    case 'claim':content=tr`<span class="eyebrow">DIE WELT WIRD AUFGETEILT</span><h2>Wähle dein Gebiet.</h2><p>Klicke oder tippe auf ein freies Gebiet, um es sofort zu besetzen. Danach ist der nächste Spieler dran.</p>${state.setup==='frontier'?tr`<div class="claim-progress">${state.players[state.me].territories} / ${board.id==='simple-world'?2:5} Länder gewählt</div><p class="fine">Danach verteilst du ${board.id==='simple-world'?8:15} zusätzliche Einheiten. Die übrigen Länder erhalten 1–3 Einheimische.</p>`:''}`;break;
     case 'setup': {
-	  content=`<span class="eyebrow">DIE ARMEEN STELLEN SICH AUF</span><h2>Deine Armee formiert sich.</h2><p>${state.setup==='frontier'?`Verteile deine ${board.id==='simple-world'?8:15} zusätzlichen Starteinheiten. Tippe ein eigenes Land an; jeder weitere Tipp setzt dort eine Einheit. Oder platziere hier eine Figur.`:'Setze eine Starteinheit auf eines deiner Gebiete.'}${state.setup!=='frontier'&&state.players.some(p=>p.neutral)?` Noch ${2-state.setupPlaced} eigene Einheit${state.setupPlaced===0?'en':''}; danach wird eine neutrale Einheit zufällig gesetzt.`:''}</p><div class="pool-number">${state.players[state.me].reserve}<span>übrig</span></div>${selectedInfo()}`;
+	  content=tr`<span class="eyebrow">DIE ARMEEN STELLEN SICH AUF</span><h2>Deine Armee formiert sich.</h2><p>${state.setup==='frontier'?tr`Verteile deine ${board.id==='simple-world'?8:15} zusätzlichen Starteinheiten. Tippe ein eigenes Land an; jeder weitere Tipp setzt dort eine Einheit. Oder platziere hier eine Figur.`:state.multiPlacement?tr('Platziere eine Figur mit 1, 5 oder 10 Einheiten auf einem eigenen Gebiet.'):tr('Setze eine Starteinheit auf eines deiner Gebiete.')}${state.setup!=='frontier'&&state.players.some(p=>p.neutral)?(state.setupPlaced===1?tr(' Noch eine eigene Einheit; danach wird eine neutrale Einheit zufällig gesetzt.'):tr(' Noch zwei eigene Einheiten; danach wird eine neutrale Einheit zufällig gesetzt.')):''}</p><div class="pool-number">${state.players[state.me].reserve}<span>übrig</span></div>${selectedInfo()}`;
       primary=placementButtons();break;
     }
     case 'reinforce':
-      content=`<h2>${state.resume==='attack'?'Beute wird Verstärkung.':'Verstärke deine Front.'}</h2><p>Tippe ein eigenes Land an. Jeder weitere Tipp setzt dort eine Einheit. Mit den Figuren platzierst du 1, 5 oder 10 Einheiten auf einmal.</p><div class="pool-number">${state.pool}<span>Einheiten</span></div>${state.mustTrade?'<div class="banner">Du hältst mindestens 5 Karten. Tausche zuerst einen gültigen Satz ein.</div><button class="secondary" id="force-trade">Karten eintauschen</button>':''}${selectedInfo()}`;
+      content=tr`<h2>${state.resume==='attack'?tr('Beute wird Verstärkung.'):tr('Verstärke deine Front.')}</h2><p>Tippe ein eigenes Land an. Jeder weitere Tipp setzt dort eine Einheit. Mit den Figuren platzierst du 1, 5 oder 10 Einheiten auf einmal.</p><div class="pool-number">${state.pool}<span>Einheiten</span></div>${state.mustTrade?tr('<div class="banner">Du hältst mindestens 5 Karten. Tausche zuerst einen gültigen Satz ein.</div><button class="secondary" id="force-trade">Karten eintauschen</button>'):''}${selectedInfo()}`;
       max=state.pool;
-      if(own(selected)&&state.pool>0&&!state.mustTrade){content+=placementButtons()+'<label for="amount">Andere Anzahl</label>'+stepper(1,max);primary='<button class="primary" id="place">Verstärkung platzieren</button>';}
+      if(own(selected)&&state.pool>0&&!state.mustTrade){content+=placementButtons()+tr('<label for="amount">Andere Anzahl</label>')+stepper(1,max);primary=tr('<button class="primary" id="place">Verstärkung platzieren</button>');}
       break;
     case 'attack':
-      content=autoCombat.active?'<h2>Der Angriff läuft.</h2><p>Nach jedem Kampf wird mit den maximal verfügbaren Würfeln weiter angegriffen.</p>':'<h2>Dein nächster Angriff.</h2><p>Wähle ein Gebiet mit mindestens zwei Einheiten, dann einen angrenzenden Gegner.</p>';
-      if(selected&&target&&own(selected)&&!own(target)&&country(selected).neighbors.includes(target)) {content+=pair(selected,target)+mountainNotice(target);const limit=maxAttackDice(state.territories[selected-1],state.rules);if(limit>0&&!autoCombat.active)content+='<p>Wähle deinen Angriff im Schlachtfeld.</p>';}
+      content=autoCombat.active?tr('<h2>Der Angriff läuft.</h2><p>Nach jedem Kampf wird mit den maximal verfügbaren Würfeln weiter angegriffen.</p>'):tr('<h2>Dein nächster Angriff.</h2><p>Wähle ein Gebiet mit mindestens zwei Einheiten, dann einen angrenzenden Gegner.</p>');
+      if(selected&&target&&own(selected)&&!own(target)&&country(selected).neighbors.includes(target)) {content+=pair(selected,target)+mountainNotice(target);const limit=maxAttackDice(state.territories[selected-1],state);if(limit>0&&!autoCombat.active)content+=tr('<p>Wähle deinen Angriff im Schlachtfeld.</p>');}
       else content+=selectedInfo();
-      if(state.conquered)content+='<span class="badge">✓ Eine Gebietskarte ist dir sicher</span>';
-      secondary=autoCombat.active?'':'<button class="secondary" id="next">Angriffsphase beenden →</button>';break;
+      if(state.conquered)content+=tr('<span class="badge">✓ Eine Gebietskarte ist dir sicher</span>');
+      secondary=autoCombat.active?'':tr('<button class="secondary" id="next">Angriffsphase beenden →</button>');break;
     case 'defend':
-      content=`<span class="eyebrow">DEIN GEBIET WIRD ANGEGRIFFEN</span><h2>Halte deine Stellung.</h2>${pair(state.pending.from,state.pending.to)}${attackRollPreview()}<p>${attackRolling?'Der Angriff würfelt. Danach wählst du im Schlachtfeld deine Verteidigung.':'Wähle deine Verteidigung im Schlachtfeld. Bei Gleichstand gewinnst du.'}</p>${mountainNotice(state.pending.to)}`;break;
+      content=tr`<span class="eyebrow">DEIN GEBIET WIRD ANGEGRIFFEN</span><h2>Halte deine Stellung.</h2>${pair(state.pending.from,state.pending.to)}${attackRollPreview()}<p>${attackRolling?tr('Der Angriff würfelt. Danach wählst du im Schlachtfeld deine Verteidigung.'):tr('Wähle deine Verteidigung im Schlachtfeld. Bei Gleichstand gewinnst du.')}</p>${mountainNotice(state.pending.to)}`;break;
     case 'occupy':
       min=state.pending.minimum;max=state.territories[state.pending.from-1].troops-1;
-      content=`<span class="eyebrow">DEIN GEBIET</span><h2>${country(state.pending.to).name} erobert.</h2><p>Ziehe mindestens ${min} Einheiten nach. Im Ausgangsgebiet muss eine Einheit bleiben.</p>${pair(state.pending.from,state.pending.to)}${movementAmount(min,max)}`;
-      primary='<button class="primary" id="occupy">Einheiten nachrücken →</button>';
+      content=tr`<span class="eyebrow">DEIN GEBIET</span><h2>${country(state.pending.to).name} erobert.</h2><p>Ziehe mindestens ${min} Einheiten nach. Im Ausgangsgebiet muss eine Einheit bleiben.</p>${pair(state.pending.from,state.pending.to)}${movementAmount(min,max)}`;
+      primary=tr('<button class="primary" id="occupy">Einheiten nachrücken →</button>');
       secondary=moveAllButton(max);break;
     case 'fortify': {
       const source=canMoveFrom(selected),destinations=source?board.countries.filter(c=>c.id!==selected&&own(c.id)&&connected(selected,c.id)):[];
       const step=source?(target?3:2):1;
-      content=state.moved?'<h2>Truppen verschoben.</h2><p>Deine Truppenbewegung ist abgeschlossen. Du kannst jetzt deinen Zug beenden.</p>':`<h2>${step===1?'Wähle dein Startland.':step===2?'Wähle dein Zielland.':'Wie viele ziehen mit?'}</h2><ol class="move-steps" aria-label="Truppen verschieben">${['Startland','Zielland','Anzahl'].map((name,i)=>`<li ${step===i+1?'aria-current="step"':''}><b>${i+1}</b>${name}</li>`).join('')}</ol>`;
+      content=state.moved?tr('<h2>Truppen verschoben.</h2><p>Deine Truppenbewegung ist abgeschlossen. Du kannst jetzt deinen Zug beenden.</p>'):tr`<h2>${step===1?tr('Wähle dein Startland.'):step===2?tr('Wähle dein Zielland.'):tr('Wie viele ziehen mit?')}</h2><ol class="move-steps" aria-label="Truppen verschieben">${[tr('Startland'),tr('Zielland'),tr('Anzahl')].map((name,i)=>`<li ${step===i+1?'aria-current="step"':''}><b>${i+1}</b>${name}</li>`).join('')}</ol>`;
       if(!state.moved){
-        if(!source)content+='<p>Klicke zuerst auf ein eigenes Land mit mindestens zwei Einheiten. Mögliche Startländer sind grün umrandet.</p>';
+        if(!source)content+=tr('<p>Klicke zuerst auf ein eigenes Land mit mindestens zwei Einheiten. Mögliche Startländer sind grün umrandet.</p>');
         else {
-          content+=target?'<p>Wähle die Anzahl und drücke „Truppen bewegen“ – oder ziehe alle verfügbaren Einheiten auf einmal.</p>':'<p>Klicke als Zweites auf ein grün umrandetes eigenes Land. Der Weg dorthin darf nur durch eigene Länder führen.</p>';
+          content+=target?tr('<p>Wähle die Anzahl und drücke „Truppen bewegen“ – oder ziehe alle verfügbaren Einheiten auf einmal.</p>'):tr('<p>Klicke als Zweites auf ein grün umrandetes eigenes Land. Der Weg dorthin darf nur durch eigene Länder führen.</p>');
           if(!target)content+=selectedInfo();
-          content+=`<label for="move-target">Zielland</label><select id="move-target"><option value="">Auf der Karte oder hier wählen …</option>${destinations.map(c=>`<option value="${c.id}" ${target===c.id?'selected':''}>${escapeHTML(c.name)}</option>`).join('')}</select>`;
-          if(target&&destinations.some(c=>c.id===target)){max=state.territories[selected-1].troops-1;content+=pair(selected,target)+movementAmount(1,max);primary='<button class="primary" id="fortify">Truppen bewegen →</button>'+moveAllButton(max);}
+          content+=tr`<label for="move-target">Zielland</label><select id="move-target"><option value="">Auf der Karte oder hier wählen …</option>${destinations.map(c=>`<option value="${c.id}" ${target===c.id?'selected':''}>${escapeHTML(c.name)}</option>`).join('')}</select>`;
+          if(target&&destinations.some(c=>c.id===target)){max=state.territories[selected-1].troops-1;content+=pair(selected,target)+movementAmount(1,max);primary=tr('<button class="primary" id="fortify">Truppen bewegen →</button>')+moveAllButton(max);}
         }
-        if(source)secondary='<button class="secondary" id="reset-move">Anderes Startland wählen</button>';
+        if(source)secondary=tr('<button class="secondary" id="reset-move">Anderes Startland wählen</button>');
       }
-      if(!state.moved)secondary+='<button class="secondary" id="back-to-attack">← Zurück zum Angriff</button>';
-      secondary+='<button class="secondary" id="next">Zug beenden ✓</button>';break;
+      if(!state.moved)secondary+=tr('<button class="secondary" id="back-to-attack">← Zurück zum Angriff</button>');
+      secondary+=tr('<button class="secondary" id="next">Zug beenden ✓</button>');break;
     }
   }
-  if(state.battle&&state.phase==='attack')content+=`<div class="last-battle">Letzter Kampf: ${state.battle.attackerLoss} Einheit${state.battle.attackerLoss===1?'':'en'} im Angriff, ${state.battle.defenderLoss} in der Verteidigung verloren.</div>`;
+  if(state.battle&&state.phase==='attack')content+=`<div class="last-battle">${tr`Letzter Kampf: Angriff −${state.battle.attackerLoss} · Verteidigung −${state.battle.defenderLoss}`}</div>`;
   if(autoCombat.active){
     const run=autoCombat.active;
-    content=`<div class="auto-combat"><span class="eyebrow">AUTOMATIK AKTIV</span><strong>${run.mode==='attack'?'Automatischer Angriff':'Automatische Verteidigung'}</strong><p>${escapeHTML(country(run.from).name)} → ${escapeHTML(country(run.to).name)}</p><button class="primary red" id="stop-auto">■ Stopp</button><small>Ein laufender Wurf wird noch ausgewertet.</small></div>`+content;
+    content=tr`<div class="auto-combat"><span class="eyebrow">AUTOMATIK AKTIV</span><strong>${run.mode==='attack'?tr('Automatischer Angriff'):tr('Automatische Verteidigung')}</strong><p>${escapeHTML(country(run.from).name)} → ${escapeHTML(country(run.to).name)}</p><button class="primary red" id="stop-auto">■ Stopp</button><small>Ein laufender Wurf wird noch ausgewertet.</small></div>`+content;
   }
-  $('#sidebar').innerHTML=`${unitInfoHTML(state,inspectedUnit,board.countries)}<div class="panel">${!['claim','capital','setup','finished'].includes(state.phase)?phaseSteps():''}${state.phase!=='finished'?`<div class="turn-owner"><i class="player-color" style="--player:${displayColor(state.actor)}"></i>${isMe&&!state.hotseat?'Du bist am Zug':escapeHTML(state.players[state.actor].name)}</div>`:''}${state.mission&&state.phase!=='finished'?'<button class="secondary" id="show-mission">Meine geheime Mission</button>':''}${content}${primary}${secondary}${state.setup==='frontier'&&!['claim','capital','setup','finished'].includes(state.phase)?`<p class="native-status">Einheimische: zufällig +1–3 alle 3 Runden, solange ein Nachbar mindestens 2 Einheiten mehr hat; sonst +0–2 alle 5 Runden. Auch andere Einheimische zählen als Bedrohung. Überlebter Gesamtangriff: sofort +1–3 Einheiten.</p>`:''}</div><div class="history">${state.botStatus?`<p class="bot-status">${escapeHTML(state.botStatus)}</p>`:''}<h3>AM SPIELTISCH</h3><ol>${[...state.log].reverse().slice(0,5).map(l=>`<li>${escapeHTML(l)}</li>`).join('')}</ol></div>`;
+  $('#sidebar').innerHTML=tr`${unitInfoHTML(state,inspectedUnit,board.countries)}<div class="panel">${!['claim','capital','setup','finished'].includes(state.phase)?phaseSteps():''}${state.phase!=='finished'?`<div class="turn-owner"><i class="player-color" style="--player:${displayColor(state.actor)}"></i>${isMe&&!state.hotseat?tr('Du bist am Zug'):escapeHTML(state.players[state.actor].name)}</div>`:''}${state.mission&&state.phase!=='finished'?tr('<button class="secondary" id="show-mission">Meine geheime Mission</button>'):''}${content}${primary}${secondary}${state.setup==='frontier'&&!['claim','capital','setup','finished'].includes(state.phase)?tr`<p class="native-status">Einheimische: zufällig +1–3 alle 3 Runden, solange ein Nachbar mindestens 2 Einheiten mehr hat; sonst +0–2 alle 5 Runden. Auch andere Einheimische zählen als Bedrohung. Überlebter Gesamtangriff: sofort +1–3 Einheiten.</p>`:''}</div><div class="history">${state.botStatus?`<p class="bot-status">${escapeHTML(serverText(state.botStatus,state.players.filter(p=>!p.neutral).map(p=>p.name)))}</p>`:''}<h3>AM SPIELTISCH</h3><ol>${[...state.log].reverse().slice(0,5).map(l=>`<li>${escapeHTML(serverText(l,state.players.filter(p=>!p.neutral).map(p=>p.name)))}</li>`).join('')}</ol></div>`;
   $('#close-unit-info')?.addEventListener('click',()=>{inspectedUnit=null;renderSidebar();});
   $('#inspected-unit')?.addEventListener('change',e=>{inspectedUnit.unitId=+e.target.value;renderSidebar();});
   renderCombat();
@@ -716,7 +717,7 @@ function renderSidebar() {
   $('#next')?.addEventListener('click',advancePhase);
   $$('[data-open-building]',$('#sidebar')).forEach(button=>button.onclick=()=>openBuilding(+button.dataset.openBuilding));
   $('#back-to-attack')?.addEventListener('click',()=>act('back'));
-  $('#show-mission')?.addEventListener('click',()=>openModal('Deine geheime Mission',`<p class="eyebrow">NUR FÜR ${escapeHTML(state.players[state.me].name)}</p><h3>${escapeHTML(state.mission.description)}</h3><p>${escapeHTML(state.mission.progress)}</p><p class="fine">Schließe dieses Fenster, bevor du das Gerät weitergibst.</p>`));
+  $('#show-mission')?.addEventListener('click',()=>openModal(tr('Deine geheime Mission'),tr`<p class="eyebrow">NUR FÜR ${escapeHTML(state.players[state.me].name)}</p><h3>${escapeHTML(serverText(state.mission.description,state.players.filter(p=>!p.neutral).map(p=>p.name)))}</h3><p>${escapeHTML(serverText(state.mission.progress))}</p><p class="fine">Schließe dieses Fenster, bevor du das Gerät weitergibst.</p>`));
   $('#close-finished-room')?.addEventListener('click',()=>confirmCloseRoom(state.code));
   $('#attack')?.addEventListener('click',()=>act('attack',{from:selected,to:target,dice:diceChoice}));
   $('#defend')?.addEventListener('click',()=>act('defend',{dice:defenseChoice}));
@@ -739,21 +740,21 @@ function renderSidebar() {
   $('#amount')?.addEventListener('input',e=>{amount=Math.trunc(Number(e.target.value));$('#less').disabled=amount<=min;$('#more').disabled=amount>=max;$$('[data-move-add]').forEach(button=>button.disabled=amount+Number(button.dataset.moveAdd)>max);});
   syncMobileHUD();
 }
-async function copyLink() {const link=`${location.origin}/#${roomCode}`;try{await navigator.clipboard.writeText(link);toast('Einladungslink kopiert.');}catch{openModal('Einladungslink',`<p>Teile diesen Link mit deinen Freunden:</p><input readonly value="${escapeHTML(link)}" aria-label="Einladungslink">`);$('input',$('#modal')).select();}}
-function moveAllButton(max){return `<button class="secondary" id="move-all">Alle ${max} verfügbaren Einheiten ziehen →</button><p class="fine">Eine Einheit bleibt im Ausgangsland.</p>`;}
+async function copyLink() {const link=`${location.origin}/#${roomCode}`;try{await navigator.clipboard.writeText(link);toast(tr('Einladungslink kopiert.'));}catch{openModal(tr('Einladungslink'),tr`<p>Teile diesen Link mit deinen Freunden:</p><input readonly value="${escapeHTML(link)}" aria-label="Einladungslink">`);$('input',$('#modal')).select();}}
+function moveAllButton(max){return tr`<button class="secondary" id="move-all">Alle ${max} verfügbaren Einheiten ziehen →</button><p class="fine">Eine Einheit bleibt im Ausgangsland.</p>`;}
 function cardHTML(id,selectable=false) {
   const c=board.cards[id],t=c.territory?country(c.territory):null;
   let map='';if(t){const [x,y,w,h]=t.bounds;map=`<svg class="card-map" viewBox="${x-4} ${y-4} ${w+8} ${h+8}" aria-hidden="true"><path d="${t.path}"/></svg>`;}else map='<div class="wild-symbol">✦</div>';
-  return `<button class="card ${c.kind==='wild'?'wild':''} ${chosenCards.includes(id)?'selected':''}" data-card="${id}" ${selectable?'aria-pressed="'+chosenCards.includes(id)+'"':''} aria-label="${t?t.name:'Joker'}, ${kindNames[c.kind]}"><small>${kindNames[c.kind]}</small>${map}<strong>${t?t.name:'Joker'}</strong>${c.kind!=='wild'?icon(c.kind,'card-symbol'):''}<span class="card-number">${String(id+1).padStart(2,'0')}</span></button>`;
+  return `<button class="card ${c.kind==='wild'?'wild':''} ${chosenCards.includes(id)?'selected':''}" data-card="${id}" ${selectable?'aria-pressed="'+chosenCards.includes(id)+'"':''} aria-label="${t?t.name:tr('Joker')}, ${kindNames[c.kind]}"><small>${kindNames[c.kind]}</small>${map}<strong>${t?t.name:tr('Joker')}</strong>${c.kind!=='wild'?icon(c.kind,'card-symbol'):''}<span class="card-number">${String(id+1).padStart(2,'0')}</span></button>`;
 }
 function renderHand() {
   const visible=state&&!['lobby','claim','capital','setup'].includes(state.phase);$('#hand-section').hidden=!visible;if(!visible)return;
   $('#hand-count').textContent=state.hand?.length||0;
-  $('#hand').innerHTML=state.hand?.length?state.hand.map(id=>cardHTML(id)).join(''):'<div class="empty-hand">Erobere ein Gebiet, um am Ende der Angriffsphase eine Karte zu erhalten.</div>';
+  $('#hand').innerHTML=state.hand?.length?state.hand.map(id=>cardHTML(id)).join(''):tr('<div class="empty-hand">Erobere ein Gebiet, um am Ende der Angriffsphase eine Karte zu erhalten.</div>');
   const canTrade=!state.paused&&state.me===state.turn&&state.phase==='reinforce'&&state.tradeOpen&&(!state.forcedTrade||state.mustTrade);
   $('#trade-open').disabled=!canTrade||state.hand.length<3;
-  $('#card-hint').textContent=state.mustTrade?'Ab fünf Karten musst du zu Beginn deines Zugs einen Satz eintauschen.':`Drei gleiche Symbole oder drei verschiedene bilden einen Satz. ${state.mode==='fixed'?'Feste Boni: '+fixedCardValues(board.id).join(' / ')+'.':'Nächster Satz: '+progressiveValue(state.trades)+' Einheiten.'}`;
-  $$('#hand [data-card]').forEach(b=>b.onclick=()=>{if(canTrade&&state.hand.length>=3)openTrade();else{const c=board.cards[+b.dataset.card];toast(`${c.territory?country(c.territory).name:'Joker'} · ${kindNames[c.kind]}`);}});
+  $('#card-hint').textContent=state.mustTrade?tr('Ab fünf Karten musst du zu Beginn deines Zugs einen Satz eintauschen.'):tr`Drei gleiche Symbole oder drei verschiedene bilden einen Satz. ${state.mode==='fixed'?tr('Feste Boni: ')+fixedCardValues(board.id).join(' / ')+'.':tr('Nächster Satz: ')+progressiveValue(state.trades)+tr(' Einheiten.')}`;
+  $$('#hand [data-card]').forEach(b=>b.onclick=()=>{if(canTrade&&state.hand.length>=3)openTrade();else{const c=board.cards[+b.dataset.card];toast(`${c.territory?country(c.territory).name:tr('Joker')} · ${kindNames[c.kind]}`);}});
 }
 function progressiveValue(n){return progressiveCardValue(n,board.id);}
 function valueOfSet(ids) {
@@ -764,14 +765,14 @@ function valueOfSet(ids) {
 function openTrade(){chosenCards=[];drawTrade();}
 function drawTrade(){
   const value=valueOfSet(chosenCards),eligible=state.rules==='classic'&&state.cardTerritoryBonusUsed?[]:chosenCards.map(id=>board.cards[id].territory).filter(own);
-  openModal('Karten gegen Verstärkung.',`<p>Wähle drei gleiche Symbole oder je eines von jeder Art. Joker ersetzen ein Symbol.</p><div class="hand">${state.hand.map(id=>cardHTML(id,true)).join('')}</div>${eligible.length&&value?`<label for="bonus-territory">+2 Einheiten auf ein eigenes Kartengebiet</label><select id="bonus-territory">${eligible.map(id=>`<option value="${id}">${country(id).name}</option>`).join('')}</select>`:''}<p>${chosenCards.length===3?(value?`Dieser Satz bringt dir <strong>${value} neue Einheiten</strong>.`:'Diese drei Karten bilden keinen gültigen Satz.'):`${chosenCards.length} von 3 Karten gewählt.`}</p><button class="primary" id="confirm-trade" ${!value?'disabled':''}>${value?`${value} Verstärkungen erhalten`:'Drei Karten auswählen'}</button>`);
+  openModal(tr('Karten gegen Verstärkung.'),tr`<p>Wähle drei gleiche Symbole oder je eines von jeder Art. Joker ersetzen ein Symbol.</p><div class="hand">${state.hand.map(id=>cardHTML(id,true)).join('')}</div>${eligible.length&&value?tr`<label for="bonus-territory">+2 Einheiten auf ein eigenes Kartengebiet</label><select id="bonus-territory">${eligible.map(id=>`<option value="${id}">${country(id).name}</option>`).join('')}</select>`:''}<p>${chosenCards.length===3?(value?tr`Dieser Satz bringt dir <strong>${value} neue Einheiten</strong>.`:tr('Diese drei Karten bilden keinen gültigen Satz.')):tr`${chosenCards.length} von 3 Karten gewählt.`}</p><button class="primary" id="confirm-trade" ${!value?'disabled':''}>${value?tr`${value} Verstärkungen erhalten`:tr('Drei Karten auswählen')}</button>`);
   $$('#modal [data-card]').forEach(b=>b.onclick=()=>{const id=+b.dataset.card;if(chosenCards.includes(id))chosenCards=chosenCards.filter(n=>n!==id);else if(chosenCards.length<3)chosenCards.push(id);drawTrade();});
   $('#confirm-trade').onclick=async()=>{const cards=[...chosenCards],bonus=+($('#bonus-territory')?.value||0);$('#modal').close();await act('trade',{cards,bonus});chosenCards=[];};
 }
 function openBuilding(id,targetLevel){
-  if(!state||state.rules!=='domination'||!country(id)||state.territories[id-1]?.owner<0||animating)return;
+  if(!state||!hasFeature(state,'buildings')||!country(id)||state.territories[id-1]?.owner<0||animating)return;
   const room=state.code,player=state.me;
-  openModal(`Gebäude · ${country(id).name}`,buildingPanel(state,id,targetLevel,isCapital(id),Object.fromEntries(board.cards.map((card,i)=>[i,`${card.territory?country(card.territory).name:'Joker'} · ${kindNames[card.kind]||card.kind}`]))));
+  openModal(tr`Gebäude · ${country(id).name}`,buildingPanel(state,id,targetLevel,isCapital(id),Object.fromEntries(board.cards.map((card,i)=>[i,`${card.territory?country(card.territory).name:tr('Joker')} · ${kindNames[card.kind]||card.kind}`]))));
   const picker=$('#building-target');
   if(picker)picker.onchange=e=>{openBuilding(id,+e.target.value);$('#building-target')?.focus();};
   const payment=$$('[data-building-card]',$('#modal'));
@@ -795,7 +796,7 @@ function refreshBuildingPanel(force=false){
 }
 function openModal(title,html){$('#modal-title').textContent=title;$('#modal-content').innerHTML=html;if(!$('#modal').open)$('#modal').showModal();}
 function openRules(){
-  openModal('Spielregeln',rulesTabsHTML(state||{goal:$('#game-goal')?.value||'domination',mode:$('#card-mode')?.value||'fixed',map:board.id}));
+  openModal(tr('Spielregeln'),rulesTabsHTML(state||{goal:$('#game-goal')?.value||'domination',mode:$('#card-mode')?.value||'fixed',map:board.id}));
   bindRulesTabs($('#modal-content'));
 }
 function initZoom(){
@@ -903,7 +904,7 @@ function commitCamera(){
   updateZoomDetails();
 }
 const facePips={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
-function dieHTML(value,color,index,revealed=false){const rot={1:[0,0],2:[0,-90],3:[90,0],4:[-90,0],5:[0,90],6:[0,180]}[value];return `<div class="die-space" aria-label="${revealed?'Würfel '+value:'Würfel rollt'}"><div class="die ${color}" style="--rx:${rot[0]}deg;--ry:${rot[1]}deg;--delay:${index*65}ms">${Object.entries(facePips).map(([n,pips])=>`<div class="face face-${n}">${pips.map(p=>`<i style="grid-area:${Math.ceil(p/3)}/${(p-1)%3+1}"></i>`).join('')}</div>`).join('')}</div></div>`;}
+function dieHTML(value,color,index,revealed=false){const rot={1:[0,0],2:[0,-90],3:[90,0],4:[-90,0],5:[0,90],6:[0,180]}[value];return `<div class="die-space" aria-label="${revealed?tr('Würfel ')+value:tr('Würfel rollt')}"><div class="die ${color}" style="--rx:${rot[0]}deg;--ry:${rot[1]}deg;--delay:${index*65}ms">${Object.entries(facePips).map(([n,pips])=>`<div class="face face-${n}">${pips.map(p=>`<i style="grid-area:${Math.ceil(p/3)}/${(p-1)%3+1}"></i>`).join('')}</div>`).join('')}</div></div>`;}
 function focusBattle(from,to,reduced){
   const key=`${from.id}:${to.id}`;
   if(battleFocus===key)return battleFocusAnimation;
@@ -945,7 +946,7 @@ function showBattlefield(fromID,toID,attackTroops,defenseTroops,fortificationTro
   }
   scene.classList.add('combat-ready');$('#dice-overlay').hidden=false;
   setCombatCompact(combatCompact,false);
-  $('#battle-title').textContent=`${from.name} → ${to.name}${isCapital(toID,game)?' · Hauptstadtfestung':''}`;
+  $('#battle-title').textContent=`${from.name} → ${to.name}${isCapital(toID,game)?tr(' · Hauptstadtfestung'):''}`;
 }
 function updateAttackRoute(){
   if(attackIntro)renderAttackRoute($('#attack-route'),attackIntro.from,attackIntro.to,1/(camera.zoom*pixelsPerUnit));
@@ -955,7 +956,7 @@ const battleIntro=createBattleIntro({
     attackIntro={from,to};
     hideBattlefield(true);
     $('#attack-intro-from').textContent=from.name;$('#attack-intro-to').textContent=to.name;
-    $('#attack-intro-countdown').textContent='Karte wird ausgerichtet …';
+    $('#attack-intro-countdown').textContent=tr('Karte wird ausgerichtet …');
     $('#attack-intro').hidden=false;$('#map-frame').classList.add('showing-attack');
     territoryNodes.get(from.id)?.land.classList.add('attack-start');
     territoryNodes.get(to.id)?.land.classList.add('attack-destination');
@@ -963,7 +964,7 @@ const battleIntro=createBattleIntro({
     updateZoomDetails();
   },
   focus:focusBattle,
-  tick:seconds=>{$('#attack-intro-countdown').textContent=`Kampf beginnt in ${seconds} …`;},
+  tick:seconds=>{$('#attack-intro-countdown').textContent=tr`Kampf beginnt in ${seconds} …`;},
   hide(){
     const previous=attackIntro;attackIntro=null;
     $('#attack-intro').hidden=true;$('#attack-route').innerHTML='';$('#map-frame').classList.remove('showing-attack');
@@ -976,7 +977,7 @@ const battleIntro=createBattleIntro({
 $('#stop-auto-map').onclick=stopAutoCombat;
 $('#pause-intro').onclick=togglePause;
 function autoDefenseSwitch(place){
-  return `<label class="auto-defense-setting" for="auto-defense-${place}"><span>${state?.hotseat?escapeHTML(state.players[state.me].name)+': automatisch verteidigen':'Immer automatisch verteidigen'}</span><input id="auto-defense-${place}" data-auto-defense type="checkbox" role="switch" aria-label="Immer automatisch verteidigen" ${(autoDefenseDraft??state?.autoDefense)?'checked':''} ${autoDefenseSaving?'disabled':''}><span class="switch-track" aria-hidden="true"></span></label>`;
+  return tr`<label class="auto-defense-setting" for="auto-defense-${place}"><span>${state?.hotseat?escapeHTML(state.players[state.me].name)+tr(': automatisch verteidigen'):tr('Immer automatisch verteidigen')}</span><input id="auto-defense-${place}" data-auto-defense type="checkbox" role="switch" aria-label="Immer automatisch verteidigen" ${(autoDefenseDraft??state?.autoDefense)?'checked':''} ${autoDefenseSaving?'disabled':''}><span class="switch-track" aria-hidden="true"></span></label>`;
 }
 function renderAutoDefenseSettings(){
   for(const place of ['header','combat']){
@@ -991,14 +992,14 @@ function renderAutoDefenseSettings(){
     autoDefenseSaving=false;
     if(!ok||!animating)autoDefenseDraft=null;
     renderAutoDefenseSettings();
-    if(ok)toast(enabled?'Automatische Verteidigung für alle Angriffe eingeschaltet.':'Dauerhafte automatische Verteidigung ausgeschaltet.');
+    if(ok)toast(enabled?tr('Automatische Verteidigung für alle Angriffe eingeschaltet.'):tr('Dauerhafte automatische Verteidigung ausgeschaltet.'));
   });
 }
 function renderPauseControls(){
   for(const id of ['#pause-game','#pause-combat','#pause-intro']){
     const button=$(id);button.hidden=!state||['lobby','finished'].includes(state.phase);
-    button.textContent=state?.paused?'▶ Fortsetzen':'Ⅱ Pause';
-    button.setAttribute('aria-label',state?.paused?'Partie fortsetzen':'Partie pausieren');
+    button.textContent=state?.paused?tr('▶ Fortsetzen'):tr('Ⅱ Pause');
+    button.setAttribute('aria-label',state?.paused?tr('Partie fortsetzen'):tr('Partie pausieren'));
   }
 }
 async function togglePause(){
@@ -1014,8 +1015,8 @@ function setCombatExpanded(expanded,remember=true){
   document.body.classList.toggle('combat-expanded',expanded);
   const button=$('#expand-combat');
   button.setAttribute('aria-pressed',String(expanded));
-  button.setAttribute('aria-label',expanded?'Schlachtfeld verkleinern':'Schlachtfeld vergrößern');
-  button.textContent=expanded?'↙ Verkleinern':'⛶ Vergrößern';
+  button.setAttribute('aria-label',expanded?tr('Schlachtfeld verkleinern'):tr('Schlachtfeld vergrößern'));
+  button.textContent=expanded?tr('↙ Verkleinern'):tr('⛶ Vergrößern');
 }
 function setCombatCompact(compact,remember=true){
   combatCompact=compact;
@@ -1026,8 +1027,8 @@ function setCombatCompact(compact,remember=true){
   $('#expand-combat').hidden=compact;
   const button=$('#minimize-combat');
   button.setAttribute('aria-pressed',String(compact));
-  button.setAttribute('aria-label',compact?'Kampfszene anzeigen':'Kampf minimieren: nur Würfel und Ergebnisse');
-  button.textContent=compact?'▣ Kampfszene':'− Minimieren';
+  button.setAttribute('aria-label',compact?tr('Kampfszene anzeigen'):tr('Kampf minimieren: nur Würfel und Ergebnisse'));
+  button.textContent=compact?tr('▣ Kampfszene'):tr('− Minimieren');
 }
 function hideBattlefield(preserveSize=false){
   $('#dice-overlay').hidden=true;
@@ -1055,26 +1056,26 @@ function renderCombat(){
   const attack=pending?(revealed?(pending.attack||[]):[]):previous?.attack||[];
   const defense=pending?[]:previous?.defense||[];
   $('#attack-dice').classList.add('settled');
-  $('#attack-dice').innerHTML=attack.length?attack.map((v,i)=>dieHTML(v,'red',i,true)).join(''):'<span class="dice-waiting">Noch nicht gewürfelt</span>';
-  $('#defense-dice').innerHTML=defense.length?defense.map((v,i)=>dieHTML(v,'',i,true)).join(''):`<span class="dice-waiting">${state.rules==='classic'?'Wählt vor dem Wurf':'Wählt nach dem Angriff'}</span>`;
-  $('#battle-result').textContent=!pending&&previous?`Letzter Kampf: Angriff −${previous.attackerLoss} · Verteidigung −${previous.defenderLoss}`:'';
+  $('#attack-dice').innerHTML=attack.length?attack.map((v,i)=>dieHTML(v,'red',i,true)).join(''):tr('<span class="dice-waiting">Noch nicht gewürfelt</span>');
+  $('#defense-dice').innerHTML=defense.length?defense.map((v,i)=>dieHTML(v,'',i,true)).join(''):`<span class="dice-waiting">${state.rules==='classic'?tr('Wählt vor dem Wurf'):tr('Wählt nach dem Angriff')}</span>`;
+  $('#battle-result').textContent=!pending&&previous?tr`Letzter Kampf: Angriff −${previous.attackerLoss} · Verteidigung −${previous.defenderLoss}`:'';
   $('#battle-result').classList.toggle('visible',Boolean(!pending&&previous));
   let controls='';
   if(autoCombat.active){
-    $('#dice-overlay .eyebrow').textContent='AUTOMATISCHER KAMPF';
-    controls='<p class="combat-status">Der nächste Wurf wird vorbereitet.</p>';
+    $('#dice-overlay .eyebrow').textContent=tr('AUTOMATISCHER KAMPF');
+    controls=tr('<p class="combat-status">Der nächste Wurf wird vorbereitet.</p>');
   }else if(state.actor===state.me&&state.phase==='attack'){
-    const limit=maxAttackDice(source,state.rules);
-    $('#dice-overlay .eyebrow').textContent='ANGRIFF VORBEREITEN';
+    const limit=maxAttackDice(source,state);
+    $('#dice-overlay .eyebrow').textContent=tr('ANGRIFF VORBEREITEN');
     const training=armyExperience(source);
-    controls=`${state.rules==='domination'?`<p class="experience-summary">★ Ø ${training.average.toLocaleString('de-DE',{maximumFractionDigits:2})} · +${training.bonus} Angriffswürfel${limit<3+training.bonus?' (durch Truppenzahl begrenzt)':''}</p>`:''}<label>Angriffswürfel</label>${choices(limit)}<div class="combat-buttons"><button class="primary red" id="attack">Angreifen</button><button class="secondary auto-start" id="auto-attack">↻ Automatisch angreifen</button></div>`;
+    controls=tr`${hasFeature(state,'experience')?tr`<p class="experience-summary">★ Ø ${training.average.toLocaleString(currentLocale(),{maximumFractionDigits:2})} · +${training.bonus} Angriffswürfel${limit<3+training.bonus?tr(' (durch Truppenzahl begrenzt)'):''}</p>`:''}<label>Angriffswürfel</label>${choices(limit)}<div class="combat-buttons"><button class="primary red" id="attack">Angreifen</button><button class="secondary auto-start" id="auto-attack">↻ Automatisch angreifen</button></div>`;
   }else if(state.actor===state.me&&pending&&revealed){
-    $('#dice-overlay .eyebrow').textContent='VERTEIDIGUNG WÄHLEN';
-    const training=armyExperience(destination),limit=maxDefenseDice(country(to),destination.troops,isCapital(to),state.rules,destination.buildingLevel||0,destination.experience);
-    controls=`${state.rules==='domination'?`<p class="experience-summary">★ Ø ${training.average.toLocaleString('de-DE',{maximumFractionDigits:2})} · +${training.bonus} Verteidigungswürfel${limit<2+(destination.buildingLevel||0)+training.bonus?' (durch Truppenzahl begrenzt)':''}</p>`:''}<label>Verteidigungswürfel</label>${choices(limit,true)}<div class="combat-buttons"><button class="primary red" id="defend">Verteidigen</button><button class="secondary auto-start" id="auto-defend">Automatisch verteidigen</button></div>`;
+    $('#dice-overlay .eyebrow').textContent=tr('VERTEIDIGUNG WÄHLEN');
+    const training=armyExperience(destination),limit=maxDefenseDice(country(to),destination.troops,isCapital(to),state,destination.buildingLevel||0,destination.experience);
+    controls=tr`${hasFeature(state,'experience')?tr`<p class="experience-summary">★ Ø ${training.average.toLocaleString(currentLocale(),{maximumFractionDigits:2})} · +${training.bonus} Verteidigungswürfel${limit<2+(destination.buildingLevel||0)+training.bonus?tr(' (durch Truppenzahl begrenzt)'):''}</p>`:''}<label>Verteidigungswürfel</label>${choices(limit,true)}<div class="combat-buttons"><button class="primary red" id="defend">Verteidigen</button><button class="secondary auto-start" id="auto-defend">Automatisch verteidigen</button></div>`;
   }else{
-    $('#dice-overlay .eyebrow').textContent=pending?'WARTE AUF VERTEIDIGUNG':'SCHLACHTFELD';
-    controls=`<p class="combat-status">${escapeHTML(state.players?.[state.actor]?.name||'Der Mitspieler')} ist am Zug.</p>`;
+    $('#dice-overlay .eyebrow').textContent=pending?tr('WARTE AUF VERTEIDIGUNG'):tr('SCHLACHTFELD');
+    controls=tr`<p class="combat-status">${escapeHTML(state.players?.[state.actor]?.name||tr('Der Mitspieler'))} ist am Zug.</p>`;
   }
   $('#battle-controls').innerHTML=controls;
 }
@@ -1101,10 +1102,10 @@ async function animateAttackRoll(next,overview){
   const a=next.territories[q.from-1],d=next.territories[q.to-1];
   if(!await battleIntro.present(next,from,to,reduced,overview)||epoch!==connectionEpoch)return;
   showBattlefield(q.from,q.to,a.troops,d.troops,d.fortificationTroops||d.troops,a.owner,d.owner,next);
-  $('#dice-overlay .eyebrow').textContent='DER ANGRIFF WÜRFELT';
+  $('#dice-overlay .eyebrow').textContent=tr('DER ANGRIFF WÜRFELT');
   $('#attack-dice').classList.remove('settled');
   $('#attack-dice').innerHTML=q.attack.map((v,i)=>dieHTML(v,'red',i)).join('');
-  $('#defense-dice').innerHTML='<span class="dice-waiting">Wählt danach</span>';
+  $('#defense-dice').innerHTML=tr('<span class="dice-waiting">Wählt danach</span>');
   $('#battle-result').classList.remove('visible');$('#battle-result').textContent='';$('#dice-overlay').classList.add('rolling');
   await waitForDice($('#dice-overlay'),reduced);
   if(epoch!==connectionEpoch)return;
@@ -1122,7 +1123,7 @@ async function animateBattle(next){
   if(!await battleIntro.present({...next,turn:b.attacker},from,to,reduced)||epoch!==connectionEpoch)return;
   showBattlefield(b.from,b.to,attackTroops,defenseTroops,fortificationTroops,b.attacker,b.defender,next,b.buildingLevel,b.construction??null,{a:b.attackerExperience||[],d:b.defenderExperience||[]});
   const attackSettled=b.attackId&&b.attackId===lastAttackRoll;
-  $('#dice-overlay .eyebrow').textContent=attackSettled?'DIE VERTEIDIGUNG WÜRFELT':'DIE WÜRFEL FALLEN';
+  $('#dice-overlay .eyebrow').textContent=attackSettled?tr('DIE VERTEIDIGUNG WÜRFELT'):tr('DIE WÜRFEL FALLEN');
   $('#attack-dice').classList.toggle('settled',Boolean(attackSettled));
   $('#attack-dice').innerHTML=b.attack.map((v,i)=>dieHTML(v,'red',i,attackSettled)).join('');
   $('#defense-dice').innerHTML=b.defense.map((v,i)=>dieHTML(v,'',i)).join('');
@@ -1130,11 +1131,11 @@ async function animateBattle(next){
   const scene=$('#combat-scene');scene.classList.remove('combat-ready');scene.classList.toggle('skirmishing',!reduced);sound('battle');
   await waitForDice($('#dice-overlay'),reduced);
   if(epoch!==connectionEpoch)return;
-  for(const [id,values] of [['#attack-dice',b.attack],['#defense-dice',b.defense]])$$('.die-space',$(id)).forEach((die,i)=>die.setAttribute('aria-label',`Würfel ${values[i]}`));
+  for(const [id,values] of [['#attack-dice',b.attack],['#defense-dice',b.defense]])$$('.die-space',$(id)).forEach((die,i)=>die.setAttribute('aria-label',tr`Würfel ${values[i]}`));
   $('#dice-overlay').classList.remove('rolling');
   scene.classList.remove('skirmishing');
-  const unitCasualties=next.rules==='domination'&&b.attackerExperience?{a:b.attackerCasualties||[],d:b.defenderCasualties||[]}:null;
-  const defenseArtwork=next.rules==='domination'?buildingArtworkTroops[b.buildingLevel??next.territories[b.to-1].buildingLevel??0]:next.rules==='classic'?1:isCapital(b.to,next)?Math.max(70,fortificationTroops):fortificationTroops;
+  const unitCasualties=hasFeature(next,'experience')&&b.attackerExperience?{a:b.attackerCasualties||[],d:b.defenderCasualties||[]}:null;
+  const defenseArtwork=hasFeature(next,'buildings')?buildingArtworkTroops[b.buildingLevel??next.territories[b.to-1].buildingLevel??0]:next.rules==='classic'?1:isCapital(b.to,next)?Math.max(70,fortificationTroops):fortificationTroops;
   const shots=artilleryShots(attackTroops,defenseTroops,b.attackerLoss,b.defenderLoss,Boolean(to.mountainous),defenseArtwork,b.id,unitCasualties);
   $('.artillery-effects',scene).innerHTML=artilleryEffects(shots);
   if(shots.length&&!reduced&&!combatCompact){
@@ -1146,8 +1147,8 @@ async function animateBattle(next){
     await new Promise(r=>setTimeout(r,90));
     if(epoch!==connectionEpoch)return;
   }
-  $('#battle-result').textContent=b.conquered?`${to.name} ist erobert. ${b.attackerLoss?b.attackerLoss+' eigene Einheit verloren.':''}`:`Angriff −${b.attackerLoss} · Verteidigung −${b.defenderLoss}`;
-  if(b.defenderGrowth)$('#battle-result').textContent+=` · Einheimische +${b.defenderGrowth}`;
+  $('#battle-result').textContent=b.conquered?tr`${to.name} ist erobert. ${b.attackerLoss?tr` Eigene Verluste: ${b.attackerLoss}.`:''}`:tr`Angriff −${b.attackerLoss} · Verteidigung −${b.defenderLoss}`;
+  if(b.defenderGrowth)$('#battle-result').textContent+=tr` · Einheimische +${b.defenderGrowth}`;
   $('#battle-result').classList.add('visible');sound(b.conquered?'conquer':'impact');scene.classList.remove('skirmishing');
   for(const [side,troops,losses] of [['a',attackTroops,b.attackerLoss],['d',defenseTroops,b.defenderLoss]]){
     for(const figure of battleCasualties(troops,losses,side==='a',unitCasualties?.[side]??null,defenseArtwork)){
@@ -1165,16 +1166,27 @@ function drainUpdates(){
 }
 $('#modal-close').onclick=()=>$('#modal').close();$('#modal').addEventListener('click',e=>{if(e.target===$('#modal')){const r=$('#modal').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('#modal').close();}});
 $('#rules-open').onclick=openRules;$('#trade-open').onclick=openTrade;
-$('#credits-open').onclick=()=>openModal('Ein Brettspiel. Neu am Bildschirm.',`<p>Spielkarten-Symbole, klassische Nachbarschaften, deutsche Namen und mitgelieferte kurze Sounds: Domination von Yura Mamyrin und Mitwirkenden. Original-Weltkarte: Christian Domsch, Sebastian Kirsch, Andreas Habel und Dirk Engberg. Die klassische Atlaszeichnung, historische Spielregionen, Figuren und Oberfläche wurden neu erstellt.</p><p>„Welt um 1700“ ist historisch inspiriert: 120 vereinfachte Spielregionen, keine exakte politische Karte von 1700. Singapura liegt an seiner tatsächlichen Position vor der Südspitze der Malaiischen Halbinsel und ist zur Bedienbarkeit vergrößert.</p><p>„Europa um 1871“: 71 Spielregionen, historisch angenäherte Staatsgrenzen und vereinfachte innere Gebiete. Geometrien nach <a href="https://github.com/aourednik/historical-basemaps" target="_blank" rel="noopener">André Ourednik, Historical Basemaps</a> (GPL-3.0), europäischer Ausschnitt und generalisierte Balkankorrekturen auf 1871. Referenz: <a href="https://www.loc.gov/item/2012590219/" target="_blank" rel="noopener">Asher &amp; Adams, Europakarte 1871</a>. Neutrale Länder dieser Karte führen beschriftete Banner ohne die Motive von 1700.</p><p>Einheimische führen Landesbanner mit historischen Flaggen- oder Wappenmotiven, für die Miniaturansicht vereinfacht. Wo keine eindeutige Zuordnung um 1700 vorliegt, zeigen sie ein neutrales Namensbanner. Grundlage unter anderem: <a href="https://www.royal.uk/union-jack" target="_blank" rel="noopener">britisches Königshaus</a>, <a href="https://data.riksdagen.se/dokument/G503109" target="_blank" rel="noopener">schwedischer Reichstag</a>, <a href="https://www.aboutswitzerland.eda.admin.ch/de/fahne" target="_blank" rel="noopener">Schweizer EDA</a>, <a href="https://archiv.hdbg.de/boehmen/treffpunkte/treffpunkte-texte-d/treffpunkt-bogen.htm" target="_blank" rel="noopener">Haus der Bayerischen Geschichte</a> und <a href="https://www.metmuseum.org/exhibitions/listings/2009/art-of-the-samurai/photo-gallery" target="_blank" rel="noopener">Metropolitan Museum</a>.</p><p>Küsten, Flüsse und Gebirgsregionen: <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth 5.1.2</a>, Public Domain. Waldzonen: <a href="https://developers.google.com/earth-engine/datasets/catalog/RESOLVE_ECOREGIONS_2017" target="_blank" rel="noopener">RESOLVE Ecoregions 2017, Dinerstein et al.</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, ausgewählt und vereinfacht. Sie zeigen natürliche Waldbiome, keine exakten Waldgrenzen von heute oder 1700. Häuser sind stilisierte Siedlungen an realen Orten, keine vermessenen Gebäude.</p><p>Code und abgeleitete Domination-Kartendaten: <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL-3.0</a>. Domination: Copyright (c) 2003–2025 yura.net. Geänderte Web-Umsetzung; Namensbereinigung am 2. Oktober 2026. <a href="https://github.com/ThomasKagerer/risk" target="_blank" rel="noopener">Quellcode und vollständige Lizenzhinweise</a>. Die aktuellen Spielklänge werden im Browser synthetisiert. Die mitgelieferten Domination-Sounds behalten die Upstream-Lizenz. Die abgeleiteten RESOLVE-Daten behalten CC BY 4.0. RISK und RISIKO sind Marken von Hasbro. Dieses unabhängige Projekt ist weder mit Hasbro verbunden noch von Hasbro autorisiert oder unterstützt.</p>`);
-function updateSound(){const waiting=soundEnabled&&soundPlayer.status==='blocked',label=waiting?'Ton fortsetzen':soundEnabled?'Ton ausschalten':'Ton einschalten';$('.sound-off').hidden=soundEnabled;$('#sound-toggle').setAttribute('aria-label',label);$('#sound-toggle').title=label;$('#sound-toggle').dataset.audioState=waiting?'waiting':soundEnabled?'ready':'off';}
+$('#credits-open').onclick=()=>openModal(tr('Ein Brettspiel. Neu am Bildschirm.'),tr`<p>Spielkarten-Symbole, klassische Nachbarschaften, deutsche Namen und mitgelieferte kurze Sounds: Domination von Yura Mamyrin und Mitwirkenden. Original-Weltkarte: Christian Domsch, Sebastian Kirsch, Andreas Habel und Dirk Engberg. Die klassische Atlaszeichnung, historische Spielregionen, Figuren und Oberfläche wurden neu erstellt.</p><p>„Welt um 1700“ ist historisch inspiriert: 120 vereinfachte Spielregionen, keine exakte politische Karte von 1700. Singapura liegt an seiner tatsächlichen Position vor der Südspitze der Malaiischen Halbinsel und ist zur Bedienbarkeit vergrößert.</p><p>„Europa um 1871“: 71 Spielregionen, historisch angenäherte Staatsgrenzen und vereinfachte innere Gebiete. Geometrien nach <a href="https://github.com/aourednik/historical-basemaps" target="_blank" rel="noopener">André Ourednik, Historical Basemaps</a> (GPL-3.0), europäischer Ausschnitt und generalisierte Balkankorrekturen auf 1871. Referenz: <a href="https://www.loc.gov/item/2012590219/" target="_blank" rel="noopener">Asher &amp; Adams, Europakarte 1871</a>. Neutrale Länder dieser Karte führen beschriftete Banner ohne die Motive von 1700.</p><p>Einheimische führen Landesbanner mit historischen Flaggen- oder Wappenmotiven, für die Miniaturansicht vereinfacht. Wo keine eindeutige Zuordnung um 1700 vorliegt, zeigen sie ein neutrales Namensbanner. Grundlage unter anderem: <a href="https://www.royal.uk/union-jack" target="_blank" rel="noopener">britisches Königshaus</a>, <a href="https://data.riksdagen.se/dokument/G503109" target="_blank" rel="noopener">schwedischer Reichstag</a>, <a href="https://www.aboutswitzerland.eda.admin.ch/de/fahne" target="_blank" rel="noopener">Schweizer EDA</a>, <a href="https://archiv.hdbg.de/boehmen/treffpunkte/treffpunkte-texte-d/treffpunkt-bogen.htm" target="_blank" rel="noopener">Haus der Bayerischen Geschichte</a> und <a href="https://www.metmuseum.org/exhibitions/listings/2009/art-of-the-samurai/photo-gallery" target="_blank" rel="noopener">Metropolitan Museum</a>.</p><p>Küsten, Flüsse und Gebirgsregionen: <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth 5.1.2</a>, Public Domain. Waldzonen: <a href="https://developers.google.com/earth-engine/datasets/catalog/RESOLVE_ECOREGIONS_2017" target="_blank" rel="noopener">RESOLVE Ecoregions 2017, Dinerstein et al.</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, ausgewählt und vereinfacht. Sie zeigen natürliche Waldbiome, keine exakten Waldgrenzen von heute oder 1700. Häuser sind stilisierte Siedlungen an realen Orten, keine vermessenen Gebäude.</p><p>Code und abgeleitete Domination-Kartendaten: <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL-3.0</a>. Domination: Copyright (c) 2003–2025 yura.net. Geänderte Web-Umsetzung; Namensbereinigung am 2. Oktober 2026. <a href="https://github.com/ThomasKagerer/risk" target="_blank" rel="noopener">Quellcode und vollständige Lizenzhinweise</a>. Die aktuellen Spielklänge werden im Browser synthetisiert. Die mitgelieferten Domination-Sounds behalten die Upstream-Lizenz. Die abgeleiteten RESOLVE-Daten behalten CC BY 4.0. RISK und RISIKO sind Marken von Hasbro. Dieses unabhängige Projekt ist weder mit Hasbro verbunden noch von Hasbro autorisiert oder unterstützt.</p>`);
+function updateSound(){const waiting=soundEnabled&&soundPlayer.status==='blocked',label=waiting?tr('Ton fortsetzen'):soundEnabled?tr('Ton ausschalten'):tr('Ton einschalten');$('.sound-off').hidden=soundEnabled;$('#sound-toggle').setAttribute('aria-label',label);$('#sound-toggle').title=label;$('#sound-toggle').dataset.audioState=waiting?'waiting':soundEnabled?'ready':'off';}
 let soundResumeClick=false;
 for(const event of ['pointerdown','keydown'])addEventListener(event,e=>{if(e.target.closest?.('#sound-toggle'))soundResumeClick=$('#sound-toggle').dataset.audioState==='waiting';},{capture:true});
 $('#sound-toggle').onclick=()=>{if(soundEnabled&&(soundResumeClick||soundPlayer.status==='blocked')){soundResumeClick=false;soundPlayer.unlock({gesture:true,recover:true});return;}soundResumeClick=false;soundEnabled=!soundEnabled;localStorage.setItem('dom-sound',soundEnabled?'on':'off');updateSound();soundPlayer.setEnabled(soundEnabled);};updateSound();
 bindSoundLifecycle(soundPlayer);
 try{
-  const [classic,world,europe,mini,terrain,europeTerrain,config]=await Promise.all([(await fetch(new URL('./assets/board.json',import.meta.url))).json(),(await fetch(new URL('./assets/world120.json',import.meta.url))).json(),(await fetch(new URL('./assets/europe1871.json',import.meta.url))).json(),(await fetch(new URL('./assets/simple-world.json',import.meta.url))).json(),(await fetch(new URL('./assets/terrain.json',import.meta.url))).json(),(await fetch(new URL('./assets/terrain-europe1871.json',import.meta.url))).json(),api('/api/config')]);
-  boardCatalog={classic,world120:world,europe1871:europe,'simple-world':mini};terrainData={world120:terrain,europe1871:europeTerrain};serverConfig=config;board=classic;initBoard();
+  const [catalog,config]=await Promise.all([api('/api/content'),api('/api/config')]);
+  configureContent(catalog);
+  const loaded=await Promise.all(catalog.maps.map(async meta=>{
+    const [map,terrain]=await Promise.all([api(meta.url),meta.terrainUrl?api(meta.terrainUrl):null]);
+    return {map,terrain};
+  }));
+  boardCatalog=Object.fromEntries(loaded.map(({map})=>[map.id,map]));
+  terrainData=Object.fromEntries(loaded.filter(({terrain})=>terrain).map(({map,terrain})=>[map.id,terrain]));
+  for(const pack of catalog.packages)for(const rules of pack.rules||[])if(rules.helpModule){
+    const module=await import(new URL(`./dlcs/${pack.id}/${rules.helpModule}`,import.meta.url));
+    registerRuleHelp(rules.id,module.createRuleHelp({tr,fixedCardValues,progressiveCardValue,buildingNames}));
+  }
+  serverConfig=config;board=localizeBoard(boardCatalog.classic);initBoard();
   const code=roomCodeFromHash(location.hash);
   if(code)await resumeFromLink(code);
   else {render();refreshMapLayout();}
-}catch(e){$('#sidebar').innerHTML='<div class="panel"><h2>Keine Verbindung.</h2><p>Das Spielbrett konnte nicht geladen werden. Bitte lade die Seite erneut.</p></div>';console.error(e);}
+}catch(e){$('#sidebar').innerHTML=tr('<div class="panel"><h2>Keine Verbindung.</h2><p>Das Spielbrett konnte nicht geladen werden. Bitte lade die Seite erneut.</p></div>');console.error(e);}

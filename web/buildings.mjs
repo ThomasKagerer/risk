@@ -1,19 +1,22 @@
+import { installedRules } from './content.mjs';
+import { localize as tr } from './i18n.mjs';
 import { armyExperience } from './experience.mjs';
 import { constructionArtwork } from './construction-art.mjs';
-export const buildingNames=['Holzhütte','Palisade','Steinburg','Festung','Bastion','Zitadelle'];
+export const buildingNames=Array.from({length:6},(_,i)=>i);
+for(let i=0;i<6;i++)Object.defineProperty(buildingNames,i,{get:()=>tr(installedRules().find(r=>r.buildings)?.buildingNames?.[i]||'')});
 // The existing artwork uses these thresholds. Explicit buildings choose the
 // artwork directly, independent of current or previous army strength.
 export const buildingArtworkTroops=[1,6,10,15,50,70];
 export function buildingDescription(territory,capital=false){
   const level=territory.buildingLevel||0,c=territory.construction,bonus=armyExperience(territory).bonus,limit=2+level+bonus;
-  return `${capital?'Hauptstadt · ':''}${buildingNames[level]} · ${Math.min(territory.troops,limit)} von ${limit} Verteidigungswürfeln${bonus?` · +${bonus} durch Erfahrung`:""}${c?` · ${buildingNames[c.level]} im Bau: noch ${c.remaining} eigene Runden`:''}`;
+  return tr`${capital?tr('Hauptstadt · '):''}${buildingNames[level]} · ${Math.min(territory.troops,limit)} von ${limit} Verteidigungswürfeln${bonus?tr` · +${bonus} durch Erfahrung`:""}${c?tr` · ${buildingNames[c.level]} im Bau: noch ${c.remaining} eigene Runden`:''}`;
 }
-export function buildingUpgradeDuration(from,to){let cost=0;for(let level=from+1;level<=to;level++)cost+=level+1;return cost;}
+export function buildingUpgradeDuration(from,to){let cost=0;for(let level=from+1;level<=to;level++)cost+=installedRules().find(r=>r.buildings)?.buildingTurns?.[level]||0;return cost;}
 export function constructionDuration(t){return t.construction?.duration||buildingUpgradeDuration(t.buildingLevel||0,t.construction?.level||0);}
 export function nextBuildingStage(t){const c=t.construction;return c?{level:(t.buildingLevel||0)+1,remaining:Math.max(0,c.remaining-buildingUpgradeDuration((t.buildingLevel||0)+1,c.level))}:null;}
 export function buildingInfo(game,id,capital=false){
  const t=game.territories[id-1],level=t.buildingLevel||0,c=t.construction,next=nextBuildingStage(t),bonus=armyExperience(t).bonus,limit=2+level+bonus;
- return `<section class="building-info" aria-label="Gebäude"><div class="building-heading"><strong>${capital?'Hauptstadt · ':''}${buildingNames[level]}</strong><span>${Math.min(t.troops,limit)} / ${limit} Würfel${bonus?` · +${bonus} Erfahrung`:""}</span></div>${c?`<div class="construction-progress" role="status"><strong>${buildingNames[c.level]} im Bau</strong><span>${buildingNames[next.level]} in ${next.remaining} ${next.remaining===1?'eigener Runde':'eigenen Runden'} · Ziel in ${c.remaining}</span><progress value="${Math.max(0,constructionDuration(t)-c.remaining)}" max="${constructionDuration(t)}" aria-label="Baufortschritt"></progress></div>`:''}<button class="secondary building-open" data-open-building="${id}">Gebäude ansehen${t.owner===game.me?' & ausbauen':''}</button></section>`;
+ return tr`<section class="building-info" aria-label="Gebäude"><div class="building-heading"><strong>${capital?tr('Hauptstadt · '):''}${buildingNames[level]}</strong><span>${Math.min(t.troops,limit)} / ${limit} Würfel${bonus?tr` · +${bonus} Erfahrung`:""}</span></div>${c?tr`<div class="construction-progress" role="status"><strong>${buildingNames[c.level]} im Bau</strong><span>${buildingNames[next.level]} in ${next.remaining} ${next.remaining===1?tr('eigener Runde'):tr('eigenen Runden')} · Ziel in ${c.remaining}</span><progress value="${Math.max(0,constructionDuration(t)-c.remaining)}" max="${constructionDuration(t)}" aria-label="Baufortschritt"></progress></div>`:''}<button class="secondary building-open" data-open-building="${id}">Gebäude ansehen${t.owner===game.me?tr(' & ausbauen'):''}</button></section>`;
 }
 export function mapBuilding(t,capital=false){
   const level=t.buildingLevel||0,c=t.construction;

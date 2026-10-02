@@ -13,7 +13,7 @@ func TestMiniaturePositionsRespectOwnershipBordersAndPersist(t *testing.T) {
 		g.Turn = 1
 		g.Round = 1
 		g.Territories[0] = Territory{Owner: 0, Troops: 16}
-		data, _ := assets.ReadFile(map[string]string{"classic": "web/assets/board.json", "world120": "web/assets/world120.json"}[mapID])
+		data, _ := assets.ReadFile(map[string]string{"classic": "web/assets/board.json", "world120": "web/dlcs/world-1700/world120.json"}[mapID])
 		var anchors struct {
 			Countries []Point `json:"countries"`
 		}

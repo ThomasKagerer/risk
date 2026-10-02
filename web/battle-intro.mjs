@@ -1,3 +1,4 @@
+import { localize as tr } from './i18n.mjs';
 // Present each new attack route once. Cancelling also settles the waiting
 // animation, so pause/reconnect cannot reopen an obsolete battlefield.
 export function createBattleIntro({show,focus,tick,hide,schedule=setTimeout,cancel=clearTimeout}) {
@@ -48,7 +49,7 @@ function routeGeometry(from,to,scale){
 export function attackRouteMarkup(from,to,scale=1){
   const geometry=routeGeometry(from,to,scale);if(!geometry)return '';
   const marker=(part,label,color,y)=>`<g data-route="${part}" transform="${geometry[part]}"><g transform="translate(0 ${y})"><rect x="-27" y="-10" width="54" height="20" rx="5" fill="${color}" stroke="#fffbed" stroke-width="1.5"/><text text-anchor="middle" y="4" fill="#fffbed" font-size="11" font-weight="800" font-family="system-ui,sans-serif">${label}</text></g></g>`;
-  return `<path data-route="halo" d="${geometry.path}" fill="none" stroke="#fffbed" stroke-width="10" vector-effect="non-scaling-stroke"/><path data-route="line" d="${geometry.path}" fill="none" stroke="#a72e24" stroke-width="5" vector-effect="non-scaling-stroke"/><path data-route="arrow" d="M0 0-14-8-10 0-14 8Z" transform="${geometry.arrow}" fill="#a72e24" stroke="#fffbed" stroke-width="1.5"/>${marker('start','START','#1d626c',-34)}${marker('end','ZIEL','#a72e24',34)}`;
+  return `<path data-route="halo" d="${geometry.path}" fill="none" stroke="#fffbed" stroke-width="10" vector-effect="non-scaling-stroke"/><path data-route="line" d="${geometry.path}" fill="none" stroke="#a72e24" stroke-width="5" vector-effect="non-scaling-stroke"/><path data-route="arrow" d="M0 0-14-8-10 0-14 8Z" transform="${geometry.arrow}" fill="#a72e24" stroke="#fffbed" stroke-width="1.5"/>${marker('start',tr('START'),'#1d626c',-34)}${marker('end',tr('ZIEL'),'#a72e24',34)}`;
 }
 
 const routeLayers=new WeakMap();

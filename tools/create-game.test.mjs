@@ -1,3 +1,7 @@
+import { hasFeature, ruleConfig, installedPackages } from '../web/content.mjs';
+import './content-fixture.mjs';
+import { setLanguage, localize as tr, currentLocale, serverText, localizeBoard } from '../web/i18n.mjs';
+await setLanguage('de',{persist:false});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -12,7 +16,7 @@ test('creating from either mode reads the existing select and preserves chosen m
   const node=key=>{if(!nodes.has(key))nodes.set(key,{addEventListener(){}});return nodes.get(key);};
   for(const [key,value] of Object.entries({'#player-name':'Tom','#game-rules':rules,'#card-mode':rules==='classic'?'progressive':'fixed','#game-goal':rules==='classic'?'mission':'domination','input[name=map]:checked':map}))node(key).value=value;
   const players=[{name:'Bot A',kind:'local'},{name:'Bot B',kind:'berserker'}];
-  const context=vm.createContext({$:key=>key==='input[name=rules]:checked'?null:node(key),
+  const context=vm.createContext({hasFeature,ruleConfig,installedPackages,tr,currentLocale,serverText,localizeBoard,$:key=>key==='input[name=rules]:checked'?null:node(key),
    location:{hash:''},roomCodeFromHash:()=>'',mapPicker:()=>'',board:{name:map},serverConfig:{},
    localStorage:{getItem:()=>'',setItem(){}},startScreenMarkup,
    bindStartScreen:(root,options)=>{binding=options;},draftPlayers:players,

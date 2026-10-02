@@ -1,5 +1,6 @@
+import { mapConfig } from './content.mjs';
 export function cardValue(value, map) {
-  return map === 'simple-world' ? Math.floor(value / 2) : value;
+  return Math.floor(value / Math.max(1,mapConfig(map).cardDivisor||1));
 }
 
 export function progressiveCardValue(trades, map) {

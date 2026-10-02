@@ -1,3 +1,4 @@
+import { localize as tr } from './i18n.mjs';
 // Static artwork, constructed once. No filters, bitmap textures or animation loop.
 export const continentColors = ['#dbc080', '#a8b995', '#acc6ce', '#dfb08a', '#bdc19c', '#bdaac5', '#b6bccb', '#c59f9b'];
 
@@ -34,9 +35,9 @@ export function initAtlas(svg, board) {
   if(board.id==='simple-world')svg.querySelector('#terrain').innerHTML='<use href="#atlas-land" fill="url(#land-light)"/>';
   const historical=!!board.artwork?.startsWith('historical-');
   svg.querySelector('.ocean-type').innerHTML=board.id==='europe1871'
-    ? '<text x="185" y="330" transform="rotate(-76 185 330)">ATLANTISCHER OZEAN</text><text x="333" y="200">NORDSEE</text><text x="395" y="455">MITTELMEER</text><text x="657" y="385">SCHWARZES MEER</text>'
+    ? tr('<text x="185" y="330" transform="rotate(-76 185 330)">ATLANTISCHER OZEAN</text><text x="333" y="200">NORDSEE</text><text x="395" y="455">MITTELMEER</text><text x="657" y="385">SCHWARZES MEER</text>')
     : historical
-    ? '<text x="70" y="300">GROSSER OZEAN</text><text x="346" y="307" transform="rotate(-76 346 307)">ATLANTISCHES MEER</text><text x="548" y="355">INDISCHES MEER</text>'
-    : '<text x="91" y="287">PAZIFISCHER</text><text x="105" y="302">OZEAN</text><text x="298" y="198" transform="rotate(-68 298 198)">ATLANTISCHER OZEAN</text><text x="502" y="444">INDISCHER OZEAN</text>';
-  svg.querySelector('.atlas-caption-small').textContent=`${board.countries.length} GEBIETE / ${historical?`UM ${board.era||1700}`:'6 KONTINENTE'}`;
+    ? tr('<text x="70" y="300">GROSSER OZEAN</text><text x="346" y="307" transform="rotate(-76 346 307)">ATLANTISCHES MEER</text><text x="548" y="355">INDISCHES MEER</text>')
+    : tr('<text x="91" y="287">PAZIFISCHER</text><text x="105" y="302">OZEAN</text><text x="298" y="198" transform="rotate(-68 298 198)">ATLANTISCHER OZEAN</text><text x="502" y="444">INDISCHER OZEAN</text>');
+  svg.querySelector('.atlas-caption-small').textContent=tr`${board.countries.length} GEBIETE / ${historical?tr`UM ${board.era||1700}`:tr('6 KONTINENTE')}`;
 }

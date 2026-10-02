@@ -1,3 +1,4 @@
+import { localize as tr } from './i18n.mjs';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icons = {
   orders:'<path d="m5 15 10-10 4 4-10 10H5v-4ZM12 8l4 4M5 5h3M19 16v3h-3"/>',
@@ -7,27 +8,27 @@ const icons = {
   menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
 };
 const icon = key => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[key]}</svg>`;
-const phases = {claim:'Startländer wählen',capital:'Hauptstadt wählen',setup:'Armee aufstellen',reinforce:'Verstärken',attack:'Angreifen',defend:'Verteidigen',occupy:'Nachrücken',fortify:'Bewegen',finished:'Partie beendet'};
+const phases = {claim:tr('Startländer wählen'),capital:tr('Hauptstadt wählen'),setup:tr('Armee aufstellen'),reinforce:tr('Verstärken'),attack:tr('Angreifen'),defend:tr('Verteidigen'),occupy:tr('Nachrücken'),fortify:tr('Bewegen'),finished:tr('Partie beendet')};
 
 // One short instruction stays on the map. Full controls use the same live DOM
 // as desktop so state changes never leave a second set of stale game handlers.
 export function mobileOrder(game, selected = 0, target = 0, countries = []) {
   if (!game) return {title:'',hint:''};
-  const name = id => countries.find(c=>c.id===id)?.name || 'Gebiet';
+  const name = id => countries.find(c=>c.id===id)?.name || tr('Gebiet');
   const mine = game.actor === game.me, territory = game.territories?.[selected-1];
-  if (game.paused) return {title:'Partie pausiert',hint:'Karte erkunden oder gemeinsam fortsetzen.',action:'#resume-game',label:'Fortsetzen'};
-  if (game.phase === 'finished') return {title:`${game.players[game.winner]?.name} gewinnt`,hint:'Sieh dir den Verlauf der Partie an.',sheet:'statistics',label:'Statistik'};
-  if (!mine) return {title:`${game.players[game.actor]?.name || 'Gegner'} ist am Zug`,hint:selected?`${name(selected)} · ${territory?.troops || 0} Einheiten`:'Du kannst die Karte weiter erkunden.'};
+  if (game.paused) return {title:tr('Partie pausiert'),hint:tr('Karte erkunden oder gemeinsam fortsetzen.'),action:'#resume-game',label:tr('Fortsetzen')};
+  if (game.phase === 'finished') return {title:tr`${game.players[game.winner]?.name} gewinnt`,hint:tr('Sieh dir den Verlauf der Partie an.'),sheet:'statistics',label:tr('Statistik')};
+  if (!mine) return {title:tr`${game.players[game.actor]?.name || tr('Gegner')} ist am Zug`,hint:selected?tr`${name(selected)} · ${territory?.troops || 0} Einheiten`:tr('Du kannst die Karte weiter erkunden.')};
   switch (game.phase) {
-    case 'claim': return {title:'Wähle ein freies Startland',hint:game.rules==='classic'?'Alle Länder werden reihum verteilt · Antippen besetzt es.':`${game.players[game.me].territories} von ${game.map==='simple-world'?2:5} gewählt · Antippen besetzt es.`};
-    case 'capital': return {title:territory?.owner===game.me?name(selected):'Wo soll deine Hauptstadt stehen?',hint:'Wähle eines deiner eigenen Länder.',action:territory?.owner===game.me?'#choose-capital':null,label:'Hauptstadt festlegen'};
+    case 'claim': return {title:tr('Wähle ein freies Startland'),hint:game.rules==='classic'?tr('Alle Länder werden reihum verteilt · Antippen besetzt es.'):tr`${game.players[game.me].territories} von ${game.map==='simple-world'?2:5} gewählt · Antippen besetzt es.`};
+    case 'capital': return {title:territory?.owner===game.me?name(selected):tr('Wo soll deine Hauptstadt stehen?'),hint:tr('Wähle eines deiner eigenen Länder.'),action:territory?.owner===game.me?'#choose-capital':null,label:tr('Hauptstadt festlegen')};
     case 'setup': case 'reinforce':
-      if (game.mustTrade) return {title:'Karten eintauschen',hint:'Deine Karten bringen neue Verstärkung.',action:'#force-trade',label:'Karten wählen'};
-      return {title:selected?name(selected):'Wähle ein eigenes Land',hint:selected?'Einheit, Pferd oder Kanone setzen.':'Tippe auf der Karte, um zu verstärken.',placement:true};
-    case 'attack': return {title:selected?name(selected):'Wähle dein Angriffsland',hint:target?`Ziel: ${name(target)}`:selected?(game.rules==='domination'?'Burg ausbauen unter „Befehle“ oder Gegner antippen.':'Tippe auf einen angrenzenden Gegner.'):'Mindestens 2 Einheiten nötig.',action:'#next',label:'Angriffe beenden'};
-    case 'defend': return {title:'Dein Land wird angegriffen',hint:'Wähle deine Würfel im Schlachtfeld.'};
-    case 'occupy': return {title:`${name(game.pending.to)} erobert`,hint:'Wähle, wie viele Einheiten nachrücken.',sheet:'orders',label:'Truppen wählen'};
-    case 'fortify': return {title:game.moved?'Truppen verschoben':target?'Wie viele ziehen mit?':selected?'Wähle dein Zielland':'Wähle ein eigenes Startland',hint:game.moved?'Dein Zug ist bereit zum Abschluss.':selected&&!target?(game.rules==='classic'?'Tippe auf ein angrenzendes eigenes Land.':'Tippe auf ein verbundenes eigenes Land.'):'Du kannst einmal pro Zug Truppen bewegen.',...(target&&!game.moved?{sheet:'orders',label:'Truppen wählen'}:{action:'#next',label:'Zug beenden'})};
+      if (game.mustTrade) return {title:tr('Karten eintauschen'),hint:tr('Deine Karten bringen neue Verstärkung.'),action:'#force-trade',label:tr('Karten wählen')};
+      return {title:selected?name(selected):tr('Wähle ein eigenes Land'),hint:selected?tr('Einheit, Pferd oder Kanone setzen.'):tr('Tippe auf der Karte, um zu verstärken.'),placement:true};
+    case 'attack': return {title:selected?name(selected):tr('Wähle dein Angriffsland'),hint:target?tr`Ziel: ${name(target)}`:selected?(game.rules==='domination'?tr('Burg ausbauen unter „Befehle“ oder Gegner antippen.'):tr('Tippe auf einen angrenzenden Gegner.')):tr('Mindestens 2 Einheiten nötig.'),action:'#next',label:tr('Angriffe beenden')};
+    case 'defend': return {title:tr('Dein Land wird angegriffen'),hint:tr('Wähle deine Würfel im Schlachtfeld.')};
+    case 'occupy': return {title:tr`${name(game.pending.to)} erobert`,hint:tr('Wähle, wie viele Einheiten nachrücken.'),sheet:'orders',label:tr('Truppen wählen')};
+    case 'fortify': return {title:game.moved?tr('Truppen verschoben'):target?tr('Wie viele ziehen mit?'):selected?tr('Wähle dein Zielland'):tr('Wähle ein eigenes Startland'),hint:game.moved?tr('Dein Zug ist bereit zum Abschluss.'):selected&&!target?(game.rules==='classic'?tr('Tippe auf ein angrenzendes eigenes Land.'):tr('Tippe auf ein verbundenes eigenes Land.')):tr('Du kannst einmal pro Zug Truppen bewegen.'),...(target&&!game.moved?{sheet:'orders',label:tr('Truppen wählen')}:{action:'#next',label:tr('Zug beenden')})};
     default:return {title:phases[game.phase]||'',hint:''};
   }
 }
@@ -36,16 +37,16 @@ export function createMobileHUD({onLayout = ()=>{}, onMapSelection = ()=>{}} = {
   const $ = selector => document.querySelector(selector);
   const media = matchMedia('(max-width: 900px), (pointer: coarse) and (max-width: 1200px)');
   const root = document.createElement('div'); root.id='mobile-hud'; root.hidden=true;
-  root.innerHTML=`<header class="hud-top"><button class="hud-turn" data-sheet="players" aria-label="Spieler und Kontinente anzeigen"><span class="hud-round"></span><strong class="hud-actor"></strong></button><div class="hud-top-actions"></div><div class="hud-resources"></div></header>
+  root.innerHTML=tr`<header class="hud-top"><button class="hud-turn" data-sheet="players" aria-label="Spieler und Kontinente anzeigen"><span class="hud-round"></span><strong class="hud-actor"></strong></button><div class="hud-top-actions"></div><div class="hud-resources"></div></header>
     <section class="hud-dock" aria-label="Aktueller Spielbefehl"><button class="hud-order-copy" data-sheet="orders"><small class="hud-phase"></small><strong class="hud-order-title"></strong><span class="hud-order-hint"></span></button><div class="hud-quick-actions"></div></section>
     <section class="hud-sheet" id="hud-sheet" aria-labelledby="hud-sheet-title" hidden><header class="hud-sheet-header"><div><small>KOMMANDOZENTRALE</small><h2 id="hud-sheet-title"></h2></div><button class="hud-close" aria-label="Zur Karte">×</button></header><div class="hud-sheet-scroll">
     ${['orders','cards','players','atlas','menu','statistics'].map(id=>`<div data-hud-panel="${id}" hidden></div>`).join('')}</div></section>
-    <nav class="hud-nav" aria-label="Spielbereiche">${[['orders','Befehle'],['cards','Karten'],['players','Spieler'],['atlas','Kontinente'],['menu','Menü']].map(([id,label])=>`<button data-sheet="${id}" aria-expanded="false" aria-controls="hud-sheet">${icon(id)}<span>${label}</span>${id==='cards'?'<b class="hud-card-count">0</b>':''}</button>`).join('')}</nav>`;
+    <nav class="hud-nav" aria-label="Spielbereiche">${[['orders',tr('Befehle')],['cards',tr('Karten')],['players',tr('Spieler')],['atlas',tr('Kontinente')],['menu',tr('Menü')]].map(([id,label])=>`<button data-sheet="${id}" aria-expanded="false" aria-controls="hud-sheet">${icon(id)}<span>${label}</span>${id==='cards'?'<b class="hud-card-count">0</b>':''}</button>`).join('')}</nav>`;
   document.body.append(root);
   const panel = id => root.querySelector(`[data-hud-panel="${id}"]`);
-  panel('menu').innerHTML='<p class="hud-help">Zwei Finger verschieben und zoomen die Karte. Mit einem Finger wählst du Länder oder verschiebst eigene Figuren.</p><div class="hud-menu-items"></div>';
-  panel('cards').innerHTML='<p class="hud-empty-cards" hidden>Noch keine Karten. Erobere ein Land und beende deinen Zug, um eine Karte zu erhalten.</p>';
-  panel('atlas').innerHTML='<p class="hud-help">Tippe auf einen Kontinent: Die Karte zeigt seine Grenzen. Erneutes Antippen hebt die Auswahl auf.</p>';
+  panel('menu').innerHTML=tr('<p class="hud-help">Zwei Finger verschieben und zoomen die Karte. Mit einem Finger wählst du Länder oder verschiebst eigene Figuren.</p><div class="hud-menu-items"></div>');
+  panel('cards').innerHTML=tr('<p class="hud-empty-cards" hidden>Noch keine Karten. Erobere ein Land und beende deinen Zug, um eine Karte zu erhalten.</p>');
+  panel('atlas').innerHTML=tr('<p class="hud-help">Tippe auf einen Kontinent: Die Karte zeigt seine Grenzen. Erneutes Antippen hebt die Auswahl auf.</p>');
   let active=false, snapshot={}, current='', returnFocus=null, previousKey='', savedScroll=0;
   const moved=[];
   function move(selector, destination) {
@@ -58,7 +59,7 @@ export function createMobileHUD({onLayout = ()=>{}, onMapSelection = ()=>{}} = {
     if (value) {
       savedScroll=window.scrollY;
       for(const [selector,dest] of [['#sidebar',panel('orders')],['#hand-section',panel('cards')],['#players',panel('players')],['#continents',panel('atlas')],['#ownership-key',panel('atlas')],['#focus-territory',panel('atlas')],['#game-statistics',panel('statistics')],['#sound-toggle',root.querySelector('.hud-top-actions')],['#pause-game',root.querySelector('.hud-top-actions')]]) move(selector,dest);
-      for(const selector of ['#connection','#reconnect','#auto-defense-header','#rules-open','#choose-map','#credits-open']) move(selector,root.querySelector('.hud-menu-items'));
+      for(const selector of ['#language-picker','#connection','#reconnect','#auto-defense-header','#rules-open','#choose-map','#credits-open']) move(selector,root.querySelector('.hud-menu-items'));
       window.scrollTo(0,0);
     } else {
       close(false);
@@ -82,7 +83,7 @@ export function createMobileHUD({onLayout = ()=>{}, onMapSelection = ()=>{}} = {
     document.body.classList.add('hud-sheet-open');
     root.querySelectorAll('[data-hud-panel]').forEach(node=>node.hidden=node.dataset.hudPanel!==id);
     root.querySelectorAll('[data-sheet]').forEach(button=>button.setAttribute('aria-expanded',String(button.dataset.sheet===id)));
-    $('#hud-sheet-title').textContent=snapshot.game?.hotseat&&['orders','cards'].includes(id)?`${id==='cards'?'Karten':'Befehle'} · ${snapshot.game.players[snapshot.game.me].name}`:{orders:'Deine Befehle',cards:'Deine Karten',players:'Die Armeen',atlas:'Kontinente & Suche',menu:'Spieloptionen',statistics:'Spielstatistik'}[id];
+    $('#hud-sheet-title').textContent=snapshot.game?.hotseat&&['orders','cards'].includes(id)?`${id==='cards'?tr('Karten'):tr('Befehle')} · ${snapshot.game.players[snapshot.game.me].name}`:{orders:tr('Deine Befehle'),cards:tr('Deine Karten'),players:tr('Die Armeen'),atlas:tr('Kontinente & Suche'),menu:tr('Spieloptionen'),statistics:tr('Spielstatistik')}[id];
     root.querySelector('.hud-sheet-scroll').scrollTop=0;
     if(focus) root.querySelector('.hud-close').focus({preventScroll:true});
   }
@@ -93,12 +94,12 @@ export function createMobileHUD({onLayout = ()=>{}, onMapSelection = ()=>{}} = {
     const order=mobileOrder(game,selected,target,countries),p=game.players[game.me];
     root.style.setProperty('--seat-color',['#b84e40','#477ca0','#b59036','#6c8753','#896b91','#ad7350'][game.actor]||'#414e4b');
     const set=(selector,text)=>{const node=root.querySelector(selector);if(node.textContent!==String(text))node.textContent=text;};
-    set('.hud-round',`RUNDE ${game.round || 1} · ${game.goal==='mission'?'MISSION':game.rules==='classic'?'KLASSISCH':game.goal==='capital'?'HAUPTSTADT':'AUFBAU & EROBERUNG'}`);
-    set('.hud-actor',game.paused?'Partie pausiert':game.actor===game.me&&!game.hotseat?'Du bist am Zug':`${game.players[game.actor]?.name || 'Gegner'} ist am Zug`);
-    set('.hud-phase',game.paused?'PAUSE':`${phases[game.phase]}${game.hotseat?' · '+game.players[game.actor].name:''}`);set('.hud-order-title',order.title);set('.hud-order-hint',order.hint);
+    set('.hud-round',tr`RUNDE ${game.round || 1} · ${game.goal==='mission'?tr('MISSION'):game.rules==='classic'?tr('KLASSISCH'):game.goal==='capital'?tr('HAUPTSTADT'):tr('AUFBAU & EROBERUNG')}`);
+    set('.hud-actor',game.paused?tr('Partie pausiert'):game.actor===game.me&&!game.hotseat?tr('Du bist am Zug'):tr`${game.players[game.actor]?.name || tr('Gegner')} ist am Zug`);
+    set('.hud-phase',game.paused?tr('PAUSE'):`${phases[game.phase]}${game.hotseat?' · '+game.players[game.actor].name:''}`);set('.hud-order-title',order.title);set('.hud-order-hint',order.hint);
     set('.hud-card-count',game.hand?.length||0);
     const reserve=game.phase==='setup'?p?.reserve:game.phase==='reinforce'?game.pool:0;
-    root.querySelector('.hud-resources').innerHTML=`<span><b>${p?.territories||0}</b> Länder</span><span><b>${p?.troops||0}</b> Einheiten</span>${reserve&&game.actor===game.me?`<span class="hud-reserve"><b>+${reserve}</b> setzen</span>`:`<span>${escape(phases[game.phase])}</span>`}`;
+    root.querySelector('.hud-resources').innerHTML=tr`<span><b>${p?.territories||0}</b> Länder</span><span><b>${p?.troops||0}</b> Einheiten</span>${reserve&&game.actor===game.me?tr`<span class="hud-reserve"><b>+${reserve}</b> setzen</span>`:`<span>${escape(phases[game.phase])}</span>`}`;
     panel('cards').querySelector('.hud-empty-cards').hidden=Boolean(game.hand?.length);
     let actions='';
     if(order.placement) {

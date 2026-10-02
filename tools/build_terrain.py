@@ -138,9 +138,9 @@ def build():
         path=''.join('M'+'L'.join(f'{x:.2f},{y:.2f}' for x,y in p.coords) for p in lines(shape) if len(p.coords)>1)
         if path:rivers.append(dict(name=f['properties']['name'],path=path))
     settlements=[dict(name=n,x=round(project(x,y)[0],2),y=round(project(x,y)[1],2)) for n,x,y in TOWNS]
-    assign_settlement_territories(settlements,json.loads((ROOT/'web/assets/world120.json').read_text()))
+    assign_settlement_territories(settlements,json.loads((ROOT/'web/dlcs/world-1700/world120.json').read_text()))
     data=dict(forestTiles=forest_tiles(forest),mountains=mountains,rivers=rivers,settlements=settlements)
-    (ROOT/'web/assets/terrain.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
+    (ROOT/'web/dlcs/world-1700/terrain.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
     print(len(rivers),'rivers;',len(mountains),'mountain ranges;',sum(len(m['points']) for m in mountains),'mountain glyphs;',len(settlements),'settlements')
 
 if __name__=='__main__':

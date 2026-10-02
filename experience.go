@@ -12,7 +12,7 @@ type UnitHistory struct {
 // Existing saves cannot tell us when their troops were recruited. Mark that
 // history as partial instead of inventing an age or past battle count.
 func (g *Game) ensureUnitHistory(partial bool) bool {
-	if g.Rules != "domination" {
+	if !g.hasExperience() {
 		return false
 	}
 	changed := false
@@ -38,16 +38,16 @@ func (g *Game) ensureUnitHistory(partial bool) bool {
 // Each entry belongs to one troop and counts owner turn starts after survived combat. Missing
 // entries are recruits (zero experience), including troops in older saves.
 func unitStars(survived int) int {
-	switch {
-	case survived >= 5:
-		return 3
-	case survived >= 3:
-		return 2
-	case survived >= 1:
-		return 1
-	default:
-		return 0
+	return defaultExperienceRules().unitStars(survived)
+}
+func (r RuleSet) unitStars(survived int) int {
+	stars := 0
+	for _, threshold := range r.StarThresholds {
+		if survived >= threshold {
+			stars++
+		}
 	}
+	return stars
 }
 
 func (t Territory) unitExperience() []int {
@@ -57,13 +57,13 @@ func (t Territory) unitExperience() []int {
 }
 
 func (g *Game) experienceBonus(id int) int {
-	if g.Rules != "domination" {
+	if !g.hasExperience() {
 		return 0
 	}
 	t := g.Territories[id-1]
 	stars := 0
 	for _, survived := range t.Experience[:min(t.Troops, len(t.Experience))] {
-		stars += unitStars(survived)
+		stars += g.ruleSet().unitStars(survived)
 	}
 	// Integer comparisons preserve the strictly-greater-than half-star edges.
 	for bonus := 3; bonus > 0; bonus-- {
@@ -83,7 +83,11 @@ func (g *Game) attackDice(id int) int {
 // Select losses without replacement using weights 8, 4, 2, 1, then mark only
 // survivors for promotion at their owner's next turn. The returned indices
 // refer to the immutable pre-battle snapshot.
-func resolveUnitExperience(t *Territory, losses, garrison, turn int, rng Random) (before, casualties []int) {
+func resolveUnitExperience(t *Territory, losses, garrison, turn int, rng Random, configs ...RuleSet) (before, casualties []int) {
+	config := defaultExperienceRules()
+	if len(configs) > 0 {
+		config = configs[0]
+	}
 	before = t.unitExperience()
 	awarded := make([]int, len(before))
 	copy(awarded, t.ExperienceTurns)
@@ -94,7 +98,7 @@ func resolveUnitExperience(t *Territory, losses, garrison, turn int, rng Random)
 		total := 0
 		for i := garrison; i < len(before); i++ {
 			if !dead[i] {
-				total += 8 >> unitStars(before[i])
+				total += 8 >> config.unitStars(before[i])
 			}
 		}
 		pick := rng(total)
@@ -102,7 +106,7 @@ func resolveUnitExperience(t *Territory, losses, garrison, turn int, rng Random)
 			if dead[i] {
 				continue
 			}
-			pick -= 8 >> unitStars(before[i])
+			pick -= 8 >> config.unitStars(before[i])
 			if pick < 0 {
 				dead[i] = true
 				casualties = append(casualties, i)
@@ -133,7 +137,7 @@ func resolveUnitExperience(t *Territory, losses, garrison, turn int, rng Random)
 // soldier's experience. Copies prevent source and destination sharing storage.
 func (g *Game) moveTroops(from, to, amount int) {
 	source, target := &g.Territories[from-1], &g.Territories[to-1]
-	if g.Rules == "domination" {
+	if g.hasExperience() {
 		g.ensureUnitHistory(true)
 		units := source.unitExperience()
 		cut := len(units) - amount

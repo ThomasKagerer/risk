@@ -1,3 +1,7 @@
+import { hasFeature, ruleConfig, installedPackages } from '../web/content.mjs';
+import './content-fixture.mjs';
+import { setLanguage, localize as tr, currentLocale, serverText, localizeBoard } from '../web/i18n.mjs';
+await setLanguage('de',{persist:false});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -11,7 +15,7 @@ function harness(patch={}){
     if(!nodes.has(id))nodes.set(id,{open:false,disabled:false,close(){this.open=false;},focus(){this.focused=true;}});
     return nodes.get(id);
   };
-  const context=vm.createContext({
+  const context=vm.createContext({hasFeature,ruleConfig,installedPackages,tr,currentLocale,serverText,localizeBoard,
     $:node,busy:false,animating:false,connectionEpoch:1,
     state:{code:'TURN01',revision:10,round:2,turn:0,actor:0,me:0,phase:'fortify',conquered:false,moved:false,paused:false,...patch},
     meActing:()=>context.state?.actor===context.state?.me,

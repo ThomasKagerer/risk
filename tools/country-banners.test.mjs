@@ -1,3 +1,7 @@
+import { hasFeature, ruleConfig, installedPackages } from '../web/content.mjs';
+import './content-fixture.mjs';
+import { setLanguage, localize as tr, currentLocale, serverText, localizeBoard } from '../web/i18n.mjs';
+await setLanguage('de',{persist:false});
 import { mapPieces } from '../web/unit-info.mjs';
 import { experienceBadges } from '../web/experience.mjs';
 import test from 'node:test';
@@ -9,7 +13,7 @@ import { playerBanner, battleScene, fallenBanner } from '../web/figures.mjs';
 
 test('every territory on both boards has its own named banner and a documented motif or honest fallback',async()=>{
   for(const file of ['world120','board']){
-    const board=JSON.parse(await readFile(new URL(`../web/assets/${file}.json`,import.meta.url)));
+    const board=JSON.parse(await readFile(new URL(file==='world120'?'../web/dlcs/world-1700/world120.json':file==='simple-world'?'../web/dlcs/mini-world/simple-world.json':`../web/assets/${file}.json`,import.meta.url)));
     for(const country of board.countries){
       const banner=countryBanner(country);
       assert.equal(banner.name,country.name);
@@ -36,7 +40,7 @@ test('each neutral map army gets a country banner while human players still use 
   const countries=[{id:1,name:'England'},{id:2,name:'Schottland'},{id:3,name:'Polen'},{id:4,name:'Böhmen'}];
   const state={phase:'attack',me:0,players:[{name:'Ada'},{name:'Einheimische',neutral:true}],territories:[{owner:1,troops:8},{owner:1,troops:2},{owner:0,troops:16},{owner:0,troops:3}]};
   let appearance=[];
-  const c=vm.createContext({mapPieces,experienceBadges,figurePlacement:{signature:()=>''},state,bannerCountries:new Map(),playerBanner,countryBanner,displayColor:()=> '#536051',escapeHTML:s=>s,piecePosition:()=>({x:0,y:0}),pieceTransform:()=>'',
+  const c=vm.createContext({hasFeature,ruleConfig,installedPackages,tr,currentLocale,serverText,localizeBoard,mapPieces,experienceBadges,figurePlacement:{signature:()=>''},state,bannerCountries:new Map(),playerBanner,countryBanner,displayColor:()=> '#536051',escapeHTML:s=>s,piecePosition:()=>({x:0,y:0}),pieceTransform:()=>'',
     armies:{update(territories,color,banner){appearance=territories.map((t,i)=>banner(t,countries[i]));}}});
   vm.runInContext(source.slice(source.indexOf('function armyMarkup('),source.indexOf('const pieceFrame='))+source.slice(source.indexOf('function renderUnits()'),source.indexOf('function updateZoomDetails()')),c);
   c.renderUnits();

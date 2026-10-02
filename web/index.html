@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,7 +14,7 @@
   <header class="topbar">
     <a href="/" class="brand" aria-label="Weltspiel Startseite"><span class="brand-mark">✦</span><span>WELTSPIEL<small>STRATEGIEATLAS</small></span></a>
     <div class="header-center" id="room-label">42 Gebiete. Eine Welt.</div>
-    <nav aria-label="Spieloptionen">
+    <nav aria-label="Spieloptionen"><label id="language-picker" class="language-picker"><span aria-hidden="true">🌐</span><select id="language-select" aria-label="Language"><option value="en">English</option></select></label>
       <span id="connection" class="connection" hidden>Verbunden</span>
       <button class="icon-button" id="reconnect" aria-label="Neu verbinden" title="Neu verbinden" hidden>↻</button>
       <button class="icon-button" id="sound-toggle" aria-label="Ton einschalten" title="Ton einschalten">♫<span class="sound-off">/</span></button>
@@ -59,6 +59,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <dialog id="modal"><div class="modal-header"><h2 id="modal-title"></h2><button class="icon-button" id="modal-close" aria-label="Schließen">×</button></div><div id="modal-content"></div></dialog>
   <div class="dice-overlay" id="dice-overlay" hidden aria-live="polite"><div class="dice-mat" role="region" aria-label="Schlachtfeld"><div class="combat-toolbar"><button id="close-combat" class="combat-close" aria-label="Schlachtfeld schließen">← Zur Karte</button><button id="pause-combat" class="combat-expand">Ⅱ Pause</button><span id="auto-defense-combat" class="auto-defense-global" hidden></span><button id="minimize-combat" class="combat-expand" aria-label="Kampf minimieren: nur Würfel und Ergebnisse" aria-pressed="false">− Minimieren</button><button id="expand-combat" class="combat-expand" aria-label="Schlachtfeld vergrößern" aria-pressed="false">⛶ Vergrößern</button></div><span class="eyebrow">DIE WÜRFEL FALLEN</span><h2 id="battle-title"></h2><div id="combat-scene" hidden></div><div class="dice-teams"><div><span class="dice-label">ANGRIFF</span><div class="dice-row" id="attack-dice"></div></div><span class="versus">VS</span><div><span class="dice-label">VERTEIDIGUNG</span><div class="dice-row" id="defense-dice"></div></div></div><div id="battle-result" class="battle-result"></div><div id="battle-controls"></div><button class="primary red auto-stop-overlay" id="stop-auto-overlay" hidden>■ Automatik stoppen</button></div></div>
-  <noscript>Bitte aktiviere JavaScript, um Domination zu spielen.</noscript>
+  <noscript>Please enable JavaScript to play Weltspiel.</noscript>
 </body>
 </html>

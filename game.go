@@ -31,10 +31,12 @@ type Card struct {
 	Territory int    `json:"territory"`
 }
 type Board struct {
-	Countries   []Country   `json:"countries"`
-	Continents  []Continent `json:"continents"`
-	Cards       []Card      `json:"cards"`
-	cardDivisor int
+	Countries      []Country   `json:"countries"`
+	Continents     []Continent `json:"continents"`
+	Cards          []Card      `json:"cards"`
+	MultiPlacement bool        `json:"multiPlacement"`
+	ScaleFrontier  bool        `json:"scaleFrontier"`
+	cardDivisor    int
 }
 
 var board Board
@@ -43,35 +45,21 @@ var boards map[string]*Board
 var initBoards = sync.OnceFunc(loadBoards)
 
 func loadBoards() {
-	data, err := assets.ReadFile("web/assets/board.json")
+	var err error
+	content, err = loadContent()
 	if err != nil {
 		panic(err)
 	}
-	if err = json.Unmarshal(data, &board); err != nil {
+	legacyData, err := assets.ReadFile("web/assets/legacy-rules.json")
+	if err != nil {
 		panic(err)
 	}
-	boards = map[string]*Board{"classic": &board}
-	for _, id := range []string{"world120", "europe1871", "simple-world"} {
-		data, err := assets.ReadFile("web/assets/" + id + ".json")
-		if err != nil {
-			panic(err)
-		}
-		var expanded Board
-		if err := json.Unmarshal(data, &expanded); err != nil {
-			panic(err)
-		}
-		if id == "simple-world" {
-			expanded.cardDivisor = 2
-		}
-		boards[id] = &expanded
+	if err = json.Unmarshal(legacyData, &legacyRuleSet); err != nil {
+		panic(err)
 	}
-	for _, b := range boards {
-		for i := range b.Countries {
-			c := &b.Countries[i]
-			c.Outline = outline(c.Path)
-			c.Path = ""
-		}
-	}
+	boards = content.boards
+	board = *boards["classic"]
+	boards["classic"] = &board
 }
 
 type Player struct {
@@ -108,10 +96,10 @@ type BotDecision struct {
 }
 
 func (g *Game) defenseLimit(id int) int {
-	if g.Rules == "classic" {
-		return 2
+	if g.Rules != "" && !g.hasBuildings() {
+		return 2 + g.experienceBonus(id)
 	}
-	if g.Rules == "domination" {
+	if g.hasBuildings() {
 		return 2 + g.Territories[id-1].BuildingLevel + g.experienceBonus(id)
 	}
 	if g.isCapital(id) {
@@ -189,6 +177,7 @@ type Battle struct {
 type Game struct {
 	quickModelTest          bool                     // Enables the explicit 120-country input projection in short tests only.
 	NextUnitID              int                      `json:"nextUnitId,omitempty"`
+	RuleConfig              *RuleSet                 `json:"ruleConfig,omitempty"`
 	Rules                   string                   `json:"rules,omitempty"`
 	ExperienceTurn          int                      `json:"experienceTurn,omitempty"`
 	CardTerritoryBonusUsed  bool                     `json:"cardTerritoryBonusUsed,omitempty"`
@@ -344,16 +333,16 @@ func shuffle(list []int, rng Random) {
 // Small boards preserve roughly the classic board's opening density.
 // Existing boards retain their established frontier setup.
 func (g *Game) frontierStartingCountries() int {
-	if g.mapID() == "simple-world" {
-		return max(1, (5*len(g.Territories)+21)/42)
+	if g.board().ScaleFrontier {
+		return max(1, (g.ruleSet().StartingCountries*len(g.Territories)+21)/42)
 	}
-	return 5
+	return g.ruleSet().StartingCountries
 }
 func (g *Game) frontierStartingArmy() int {
-	if g.mapID() == "simple-world" {
-		return max(g.frontierStartingCountries(), (20*len(g.Territories)+41)/42)
+	if g.board().ScaleFrontier {
+		return max(g.frontierStartingCountries(), (g.ruleSet().StartingArmy*len(g.Territories)+41)/42)
 	}
-	return 20
+	return g.ruleSet().StartingArmy
 }
 func (g *Game) start(rng Random) error {
 	if err := validGoal(g.Rules, g.Goal); err != nil {
@@ -362,8 +351,8 @@ func (g *Game) start(rng Random) error {
 	if g.Rules == "classic" {
 		g.Setup = "classic"
 		g.Mode = "progressive"
-	} else if g.Rules == "domination" {
-		g.Setup = "frontier"
+	} else if g.Rules != "" {
+		g.Setup = g.ruleSet().Setup
 	}
 	n := len(g.Players)
 	if g.Goal == "mission" && (g.Rules != "classic" || n < 3) {
@@ -438,7 +427,7 @@ func (g *Game) reinforcement(p int) int {
 	return g.reinforcementIncome(p).Total
 }
 func (g *Game) beginTurn() {
-	if g.Rules == "domination" {
+	if g.hasExperience() {
 		g.ExperienceTurn++
 		g.promoteSurvivingUnits()
 	}
@@ -528,7 +517,7 @@ func (b *Board) tradeValue(ids []int, mode string, trades int) int {
 	return best
 }
 func (g *Game) connected(from, to, p int) bool {
-	if g.Rules == "classic" {
+	if !g.ruleSet().ConnectedMovement {
 		return g.mine(from, p) && g.mine(to, p) && slices.Contains(g.board().Countries[from-1].Neighbors, to)
 	}
 	if !g.mine(from, p) || !g.mine(to, p) {
@@ -577,7 +566,7 @@ func (g *Game) apply(player int, a Action, rng Random) (err error) {
 		} else if changed {
 			g.note("%s setzt die Partie fort.", g.Players[player].Name)
 			g.finishReinforcement()
-			if g.Phase == "defend" && g.Pending != nil && g.Players[g.Pending.Defender].AutoDefense && g.Players[g.Pending.Defender].Bot == "" && (g.Rules == "classic" || len(g.Pending.Attack) == g.Pending.Dice) {
+			if g.Phase == "defend" && g.Pending != nil && g.Players[g.Pending.Defender].AutoDefense && g.Players[g.Pending.Defender].Bot == "" && (!g.ruleSet().RevealedAttack || len(g.Pending.Attack) == g.Pending.Dice) {
 				g.resolveBattle(g.automaticDefenseDice(g.Pending.To, g.Pending.Attack), rng)
 			}
 		}
@@ -589,7 +578,7 @@ func (g *Game) apply(player int, a Action, rng Random) (err error) {
 			return fail("Nur ein menschlicher Spieler kann seine automatische Verteidigung ändern.")
 		}
 		g.Players[player].AutoDefense = *a.Enabled
-		if !g.Paused && *a.Enabled && g.Phase == "defend" && g.Pending != nil && g.Pending.Defender == player && (g.Rules == "classic" || len(g.Pending.Attack) == g.Pending.Dice) {
+		if !g.Paused && *a.Enabled && g.Phase == "defend" && g.Pending != nil && g.Pending.Defender == player && (!g.ruleSet().RevealedAttack || len(g.Pending.Attack) == g.Pending.Dice) {
 			g.resolveBattle(g.automaticDefenseDice(g.Pending.To, g.Pending.Attack), rng)
 		}
 		g.Revision++
@@ -732,7 +721,7 @@ func (g *Game) apply(player int, a Action, rng Random) (err error) {
 			return fail("Wähle eines deiner eigenen Länder als Hauptstadt.")
 		}
 		g.Players[p].Capital = a.Territory
-		if g.Rules == "domination" {
+		if g.hasBuildings() {
 			g.Territories[a.Territory-1].BuildingLevel = 1
 		}
 		g.note("%s wählt %s als Hauptstadt.", g.Players[p].Name, g.board().Countries[a.Territory-1].Name)
@@ -758,7 +747,7 @@ func (g *Game) apply(player int, a Action, rng Random) (err error) {
 				natives := len(g.Players) - 1
 				for i, t := range g.Territories {
 					if t.Owner < 0 {
-						g.Territories[i] = Territory{Owner: natives, Troops: 1 + rng(3)}
+						g.Territories[i] = Territory{Owner: natives, Troops: randomRange(g.nativeRules().InitialMin, g.nativeRules().InitialMax, rng)}
 					}
 				}
 				g.note("Jeder Spieler hat %d Länder gewählt. Die übrigen Länder werden von 1–3 Einheimischen verteidigt.", g.frontierStartingCountries())
@@ -789,19 +778,22 @@ func (g *Game) apply(player int, a Action, rng Random) (err error) {
 					g.nextSetup()
 					break
 				}
-				if !g.mine(a.Territory, p) || a.Amount != 1 || g.Players[p].Reserve < 1 {
+				if !g.mine(a.Territory, p) || !g.validSetupAmount(a.Amount) || g.Players[p].Reserve < a.Amount {
 					return fail("Platziere eine Einheit auf einem passenden Gebiet.")
 				}
-				g.Territories[a.Territory-1].Troops++
-				g.Players[p].Reserve--
-				g.SetupPlaced++
-				if g.SetupPlaced == 2 {
+				g.Territories[a.Territory-1].Troops += a.Amount
+				g.Players[p].Reserve -= a.Amount
+				g.SetupPlaced += a.Amount
+				advance := g.SetupPlaced >= 2 || g.board().MultiPlacement && a.Amount > 1
+				for g.SetupPlaced >= 2 {
 					g.placeRandomNeutral(rng)
-					g.SetupPlaced = 0
+					g.SetupPlaced -= 2
+				}
+				if advance {
 					g.nextSetup()
 				}
 			} else {
-				validAmount := a.Amount == 1 || g.Setup == "frontier" && (a.Amount == 5 || a.Amount == 10)
+				validAmount := g.validSetupAmount(a.Amount)
 				if !g.mine(a.Territory, p) || !validAmount || g.Players[p].Reserve < a.Amount {
 					return fail("Wähle ein eigenes Gebiet und eine Figur, für die genügend Starteinheiten übrig sind.")
 				}
@@ -939,7 +931,7 @@ func (g *Game) apply(player int, a Action, rng Random) (err error) {
 		}
 		g.rememberFortification(a.To)
 		g.Pending = &Pending{ID: g.Revision + 1, From: a.From, To: a.To, Dice: a.Dice, Defender: g.Territories[a.To-1].Owner}
-		if g.Rules != "classic" {
+		if g.ruleSet().RevealedAttack {
 			g.Pending.Attack = g.playerDice(p, a.Dice, rng)
 		}
 		if !g.Players[g.Pending.Defender].Neutral {
@@ -955,7 +947,7 @@ func (g *Game) apply(player int, a Action, rng Random) (err error) {
 		if g.Phase != "defend" || g.Pending == nil || a.Dice < 1 || a.Dice > g.defenseDice(g.Pending.To) {
 			return fail("Wähle eine erlaubte Anzahl Verteidigungswürfel für dieses Gebiet.")
 		}
-		if g.Rules != "classic" && len(g.Pending.Attack) != g.Pending.Dice {
+		if g.ruleSet().RevealedAttack && len(g.Pending.Attack) != g.Pending.Dice {
 			return fail("Der Angriffswurf fehlt. Bitte verbinde dich erneut.")
 		}
 		g.resolveBattle(a.Dice, rng)
@@ -1015,7 +1007,7 @@ func (g *Game) playerDice(seat, count int, rng Random) []int {
 // before exposing that pending defense to any player or bot.
 func (g *Game) preparePendingAttack(rng Random) bool {
 	q := g.Pending
-	if g.Rules == "classic" {
+	if !g.ruleSet().RevealedAttack {
 		return false
 	}
 	if g.Phase != "defend" || q == nil || len(q.Attack) != 0 || q.Dice < 1 || !g.territory(q.From) || q.Dice > g.attackDice(q.From) {
@@ -1047,7 +1039,7 @@ func (g *Game) minimumOccupation() int {
 
 func (g *Game) resolveBattle(defense int, rng Random) {
 	q := g.Pending
-	if g.Rules == "classic" {
+	if !g.ruleSet().RevealedAttack {
 		q.Attack = g.playerDice(g.Territories[q.From-1].Owner, q.Dice, rng)
 	}
 	p := g.Turn
@@ -1068,11 +1060,11 @@ func (g *Game) resolveBattle(defense int, rng Random) {
 		}
 	}
 	b.DefenderLoss = min(b.DefenderLoss, g.Territories[q.To-1].Troops)
-	if g.Rules == "domination" {
+	if g.hasExperience() {
 		g.ensureUnitHistory(true)
 		g.ExperienceTurn = max(1, g.ExperienceTurn)
-		b.AttackerExperience, b.AttackerCasualties = resolveUnitExperience(&g.Territories[q.From-1], b.AttackerLoss, 1, g.ExperienceTurn, rng)
-		b.DefenderExperience, b.DefenderCasualties = resolveUnitExperience(&g.Territories[q.To-1], b.DefenderLoss, 0, g.ExperienceTurn, rng)
+		b.AttackerExperience, b.AttackerCasualties = resolveUnitExperience(&g.Territories[q.From-1], b.AttackerLoss, 1, g.ExperienceTurn, rng, g.ruleSet())
+		b.DefenderExperience, b.DefenderCasualties = resolveUnitExperience(&g.Territories[q.To-1], b.DefenderLoss, 0, g.ExperienceTurn, rng, g.ruleSet())
 	}
 	g.Territories[q.From-1].Troops -= b.AttackerLoss
 	g.Territories[q.To-1].Troops -= b.DefenderLoss
@@ -1144,7 +1136,7 @@ func (g *Game) view(me int) map[string]any {
 		copy.Minimum = g.minimumOccupation()
 		pending = &copy
 	}
-	view := map[string]any{"rules": g.Rules, "cardTerritoryBonusUsed": g.CardTerritoryBonusUsed, "goal": g.Goal, "paused": g.Paused, "pausedBy": g.PausedBy, "autoDefense": g.Players[me].AutoDefense, "setup": g.Setup, "map": g.mapID(), "code": g.Code, "mode": g.Mode, "phase": g.Phase, "players": players, "territories": g.Territories, "turn": g.Turn, "actor": g.actor(), "round": g.Round, "revision": g.Revision, "pool": g.Pool, "trades": g.Trades, "tradeOpen": g.TradeOpen, "mustTrade": g.Phase == "reinforce" && g.mustTrade(), "forcedTrade": g.ForcedTrade, "resume": g.Resume, "conquered": g.Conquered, "moved": g.Moved, "setupPlaced": g.SetupPlaced, "pending": pending, "battle": g.Battle, "winner": g.Winner, "log": g.Log, "me": me, "hand": g.Players[me].Cards, "deckCount": len(g.Deck), "botStatus": g.BotStatus}
+	view := map[string]any{"rules": g.Rules, "ruleConfig": g.ruleSet(), "multiPlacement": g.board().MultiPlacement, "cardTerritoryBonusUsed": g.CardTerritoryBonusUsed, "goal": g.Goal, "paused": g.Paused, "pausedBy": g.PausedBy, "autoDefense": g.Players[me].AutoDefense, "setup": g.Setup, "map": g.mapID(), "code": g.Code, "mode": g.Mode, "phase": g.Phase, "players": players, "territories": g.Territories, "turn": g.Turn, "actor": g.actor(), "round": g.Round, "revision": g.Revision, "pool": g.Pool, "trades": g.Trades, "tradeOpen": g.TradeOpen, "mustTrade": g.Phase == "reinforce" && g.mustTrade(), "forcedTrade": g.ForcedTrade, "resume": g.Resume, "conquered": g.Conquered, "moved": g.Moved, "setupPlaced": g.SetupPlaced, "pending": pending, "battle": g.Battle, "winner": g.Winner, "log": g.Log, "me": me, "hand": g.Players[me].Cards, "deckCount": len(g.Deck), "botStatus": g.BotStatus}
 	if mission := g.missionView(me); mission != nil {
 		view["mission"] = mission
 	}
@@ -1157,4 +1149,10 @@ func (g *Game) view(me int) map[string]any {
 	}
 	view["nativeDefense"] = g.NativeDefense
 	return view
+}
+
+// The base game places single troops. Map DLCs can additionally place figures
+// worth five or ten troops without changing reserves or reinforcement income.
+func (g *Game) validSetupAmount(n int) bool {
+	return n == 1 || (g.Setup == "frontier" || g.board().MultiPlacement) && (n == 5 || n == 10)
 }

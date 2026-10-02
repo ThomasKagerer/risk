@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { initTerrain, updateSettlementBanners, terrainDetail } from '../web/terrain.mjs';
 
-const board=JSON.parse(await readFile(new URL('../web/assets/world120.json',import.meta.url)));
-const data=JSON.parse(await readFile(new URL('../web/assets/terrain.json',import.meta.url)));
+const board=JSON.parse(await readFile(new URL('../web/dlcs/world-1700/world120.json',import.meta.url)));
+const data=JSON.parse(await readFile(new URL('../web/dlcs/world-1700/terrain.json',import.meta.url)));
 
 test('each settlement has exactly one rooftop standard and a valid game territory',()=>{
   const layer={innerHTML:'',insertAdjacentHTML(){}},defs={insertAdjacentHTML(){}};

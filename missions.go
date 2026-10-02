@@ -24,10 +24,10 @@ type MissionView struct {
 }
 
 func validGoal(rules, goal string) error {
-	if goal == "" || goal == "domination" || goal == "capital" && rules != "classic" || goal == "mission" && rules == "classic" {
+	if goal == "" || slices.Contains(rulesFor(rules).Goals, goal) {
 		return nil
 	}
-	return errors.New("Klassisch bietet Welteroberung oder Mission; Aufbau & Eroberung bietet Welteroberung oder Hauptstadt.")
+	return errors.New("Dieses Spielziel ist mit dem gewählten Regelpaket nicht verfügbar.")
 }
 func (g *Game) missionCountryGoal(original int) int { return (original*len(g.Territories) + 41) / 42 }
 func (g *Game) missionDeck() []Mission {
