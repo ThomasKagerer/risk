@@ -34,4 +34,6 @@ node --test tools/*.test.mjs
 
 ## Lizenz und Quellen
 
-GPL-3.0, siehe [LICENSE](LICENSE). Herkunft der Karten, Sounds und geografischen Daten: [THIRD_PARTY.md](THIRD_PARTY.md). Unabhängige Web-Umsetzung, kein offizielles Produkt von Hasbro oder dem Domination-Projekt. RISK/RISIKO wird ausschließlich im Rechtehinweis zur Abgrenzung genannt; der Name gehört Hasbro. Die GPL gewährt keine Rechte an fremden Marken. Offene Prüfungen und Umfang der Bereinigung: [Rechteprüfung](docs/rights-review.md).
+GPL-3.0, siehe [LICENSE](LICENSE). Herkunft der Karten, Sounds und geografischen Daten: [THIRD_PARTY.md](THIRD_PARTY.md).
+
+RISK und RISIKO sind Marken von Hasbro. Dieses unabhängige Projekt ist weder mit Hasbro verbunden noch von Hasbro autorisiert oder unterstützt. Die GPL gewährt keine Rechte an fremden Marken. Offene Prüfungen und Umfang der Bereinigung: [Rechteprüfung](docs/rights-review.md).

@@ -22,4 +22,4 @@ Die GPL-Herkunft ist dokumentiert. Die Rechtekette der klassischen 42-Gebiete-Ka
 
 Ältere Git-Commits behalten frühere Namen und Dateien. Die Bereinigung des aktuellen Stands entfernt weder GitHub-Kopien noch frühere Veröffentlichungen. Der laufende Spielserver muss separat mit diesem Stand aktualisiert werden.
 
-Die GitHub-Umbenennung von `risk` zu `weltspiel` konnte nicht ausgeführt werden: Der verfügbare GitHub-CLI-Zugang hat nur Leseberechtigung für dieses Repository. Die sichtbare Spielbezeichnung ist unabhängig davon bereinigt.
+Die GitHub-Adresse `ThomasKagerer/risk` bleibt auf ausdrücklichen Wunsch des Projektinhabers bestehen. Die sichtbare Spielbezeichnung ist „Weltspiel · Strategieatlas“. Ein gewöhnliches Wort ist nicht automatisch in jedem Nutzungskontext von Markenrechten ausgenommen; die URL wurde nicht rechtlich freigegeben.
