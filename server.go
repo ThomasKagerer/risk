@@ -370,7 +370,7 @@ func (s *server) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if input.Rules == "" {
-		input.Rules = "domination"
+		input.Rules = "classic"
 	}
 	if input.Rules != "classic" && input.Rules != "domination" {
 		problem(w, 400, errors.New("Wähle Klassisch oder Domination."))

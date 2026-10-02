@@ -10,7 +10,7 @@ export function startScreenMarkup({mapPicker, description, name, email, lastRoom
         <div class="start-step-label" id="home-step-label">1 / 2 · Karte & Regeln</div>
         <div class="start-form-scroll">
           <div id="home-step-map">${mapPicker}<p class="fine" id="map-description">${escape(description)}</p>
-            <label for="game-rules">Spielmodus</label><select id="game-rules"><option value="domination">Domination</option><option value="classic">Klassisch</option></select><p class="fine" id="rules-description">Freie Länder, Einheimische und ausbaubare Burgen.</p>
+            <label for="game-rules">Spielmodus</label><select id="game-rules"><option value="classic">Klassisch</option><option value="domination">Domination</option></select><p class="fine" id="rules-description">Freie Länder, Einheimische und ausbaubare Burgen.</p>
             <label for="game-goal">Spielziel</label><select id="game-goal"><option value="domination">Welteroberung</option><option value="capital">Hauptstadt · Burg verteidigen</option></select>
             <p class="fine" id="goal-description">Erobere die Welt und besiege die anderen Spieler.</p>
             <label for="card-mode">Kartenbonus</label><select id="card-mode"><option value="fixed">Feste Boni · 4 / 6 / 8 / 10</option><option value="progressive">Steigende Boni · 4 / 6 / 8 / …</option></select>
@@ -77,6 +77,6 @@ export function bindStartScreen(root, {code, mapName, onCreate}) {
   };
   for(const [from,to] of [['#player-name','#join-name'],['#join-name','#player-name']])$(from).addEventListener('input',()=>{$(to).value=$(from).value;});
   $('#map-choice').addEventListener('change',updateDescriptions);
-  updateDescriptions();
+  $('#game-rules').onchange();
   showTab(code?'join':'create');
 }

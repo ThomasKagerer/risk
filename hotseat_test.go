@@ -38,7 +38,7 @@ func hotseatRead(t *testing.T, w *httptest.ResponseRecorder, status int) hotseat
 }
 func hotseatCreate(t *testing.T, s *server) (hotseatView, []*http.Cookie) {
 	t.Helper()
-	w := request(t, s, "POST", "/api/rooms", map[string]any{"name": "Ada", "mode": "fixed", "goal": "capital", "players": []map[string]string{{"kind": "human", "name": "Ben"}, {"kind": "human", "name": "Cleo"}}}, nil)
+	w := request(t, s, "POST", "/api/rooms", map[string]any{"name": "Ada", "mode": "fixed", "goal": "capital", "rules": "domination", "players": []map[string]string{{"kind": "human", "name": "Ben"}, {"kind": "human", "name": "Cleo"}}}, nil)
 	return hotseatRead(t, w, 201), w.Result().Cookies()
 }
 func TestHotseatCreationSetupAndRecovery(t *testing.T) {

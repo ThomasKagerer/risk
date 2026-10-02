@@ -74,7 +74,7 @@ test('each built stage has distinct map art and capitals keep their actual tier'
 
 test('create screen and rulebook present separate modes and the agreed construction costs',()=>{
  const html=startScreenMarkup({mapPicker:'',description:'',name:'',email:'',lastRoom:'',code:''});
- assert.match(html,/<option value="classic">Klassisch/);assert.match(html,/id="game-rules"><option value="domination">/);
+ assert.match(html,/<option value="classic">Klassisch/);assert.match(html,/id="game-rules"><option value="classic">/);
  const dom=rulesHTML({rules:'domination'}),classic=rulesHTML({rules:'classic'});
  assert.match(dom,/<td>Palisade<\/td><td>1 \/ 2<\/td>/);
  assert.match(dom,/<td>Zitadelle<\/td><td>1 \/ 6<\/td><td>7<\/td>/);

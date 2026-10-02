@@ -128,7 +128,7 @@ func TestCapitalAPIPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w := request(t, s, "POST", "/api/rooms", map[string]any{"name": "Test", "mode": "fixed", "map": "europe1871", "goal": "capital", "bots": []string{"local"}}, nil)
+	w := request(t, s, "POST", "/api/rooms", map[string]any{"name": "Test", "mode": "fixed", "map": "europe1871", "goal": "capital", "rules": "domination", "bots": []string{"local"}}, nil)
 	if w.Code != 201 {
 		t.Fatal(w.Code, w.Body.String())
 	}

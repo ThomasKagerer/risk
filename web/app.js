@@ -1170,7 +1170,7 @@ $('#sound-toggle').onclick=()=>{if(soundEnabled&&(soundResumeClick||soundPlayer.
 bindSoundLifecycle(soundPlayer);
 try{
   const [classic,world,europe,mini,terrain,europeTerrain,config]=await Promise.all([(await fetch(new URL('./assets/board.json',import.meta.url))).json(),(await fetch(new URL('./assets/world120.json',import.meta.url))).json(),(await fetch(new URL('./assets/europe1871.json',import.meta.url))).json(),(await fetch(new URL('./assets/simple-world.json',import.meta.url))).json(),(await fetch(new URL('./assets/terrain.json',import.meta.url))).json(),(await fetch(new URL('./assets/terrain-europe1871.json',import.meta.url))).json(),api('/api/config')]);
-  boardCatalog={classic,world120:world,europe1871:europe,'simple-world':mini};terrainData={world120:terrain,europe1871:europeTerrain};serverConfig=config;board=world;initBoard();
+  boardCatalog={classic,world120:world,europe1871:europe,'simple-world':mini};terrainData={world120:terrain,europe1871:europeTerrain};serverConfig=config;board=classic;initBoard();
   const code=roomCodeFromHash(location.hash);
   if(code)await resumeFromLink(code);
   else {render();refreshMapLayout();}

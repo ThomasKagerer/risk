@@ -2,6 +2,8 @@
 
 Brettspiel im Browser für 2–6 Spieler, mit Hotseat, Einladungslinks und lokalen Computergegnern. Enthält klassische Regeln, Domination-Hausregeln, Missionen, Hauptstädte, mehrere Karten, Gebäude und Einheitenerfahrung.
 
+Neue Partien starten standardmäßig mit klassischen Risiko-Regeln, der klassischen Weltkarte und steigenden Kartenboni.
+
 Diese Spielversion enthält keine LLM-Anbindung, Trainingsdienste oder Modellgewichte. Lokale Strategie-Bots, Ragnar und Klaus Störtebeker sind enthalten.
 
 ## Lokal starten
