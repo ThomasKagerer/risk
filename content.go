@@ -209,8 +209,8 @@ func (c *contentCatalog) addPackage(source fs.FS) error {
 	if err = d.Decode(&m); err != nil {
 		return err
 	}
-	if m.Format != 1 || !contentID.MatchString(m.ID) || m.Name == "" || m.Version == "" || len(m.Maps) == 0 || len(m.Maps) > 20 || len(m.Rules) > 20 {
-		return errors.New("invalid DLC manifest (format 1 and at least one map required)")
+	if m.Format != 1 || !contentID.MatchString(m.ID) || m.Name == "" || m.Version == "" || (len(m.Maps) == 0 && len(m.Rules) == 0) || len(m.Maps) > 20 || len(m.Rules) > 20 {
+		return errors.New("invalid DLC manifest (format 1 and at least one map or rule required)")
 	}
 	for _, p := range c.Packages {
 		if p.ID == m.ID {

@@ -32,7 +32,7 @@ func TestBundledDLCPackagesAreIndependent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Packages) != 4 || len(c.Maps) != 5 || len(c.Rules) != 2 {
+	if len(c.Packages) != 4 || len(c.Maps) != 4 || len(c.Rules) != 2 {
 		t.Fatal("unexpected installed catalog")
 	}
 	for _, id := range []string{"mini-world", "world-1700", "europe-1871"} {
@@ -47,6 +47,21 @@ func TestBundledDLCPackagesAreIndependent(t *testing.T) {
 		if len(only.Rules) != 1 || len(only.Maps) != 1 || only.Maps[0].MultiPlacement != (id != "europe-1871") {
 			t.Fatal("map DLC changed base rules or lost multi-placement")
 		}
+	}
+	source, err := fs.Sub(assets, "web/dlcs/aufbau-eroberung")
+	if err != nil {
+		t.Fatal(err)
+	}
+	only := newContentCatalog()
+	if err = only.addPackage(source); err != nil {
+		t.Fatal(err)
+	}
+	if len(only.Maps) != 0 || len(only.Rules) != 2 || !only.rules["domination"].Buildings {
+		t.Fatal("rule-only DLC must install without any map")
+	}
+	empty := fstest.MapFS{"dlc.json": {Data: []byte(`{"format":1,"id":"empty","name":"Empty","version":"1"}`)}}
+	if err = only.addPackage(empty); err == nil || len(only.Packages) != 1 {
+		t.Fatal("empty DLC must be rejected without changing the catalog")
 	}
 	r := c.rules["domination"]
 	if !r.Buildings || !r.Experience || !r.RevealedAttack || r.upgradeDuration(0, 5) != 20 || r.Natives.ThreatRounds != 3 || r.Natives.QuietRounds != 5 {

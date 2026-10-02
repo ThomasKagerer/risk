@@ -33,3 +33,11 @@ test('map card scaling is supplied by DLC metadata without changing classic rule
  assert.deepEqual(fixedCardValues('world120'),[4,6,8,10]);
  assert.equal(hasFeature('classic','buildings'),false);
 });
+
+test('Aufbau & Eroberung supplies rules without adding a map',()=>{
+ const pkg=bundledCatalog.packages.find(p=>p.id==='aufbau-eroberung');
+ assert.deepEqual(pkg.maps,[]);
+ assert.equal(pkg.rules[0].id,'domination');
+ assert.equal(bundledCatalog.maps.some(m=>m.id==='aufbau-eroberung'),false);
+ assert.match(markup(),/value="domination">Aufbau &amp; Eroberung · DLC/);
+});

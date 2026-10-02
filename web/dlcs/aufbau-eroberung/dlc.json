@@ -3,13 +3,7 @@
   "id": "aufbau-eroberung",
   "name": "Aufbau & Eroberung",
   "version": "1.0.0",
-  "maps": [
-    {
-      "id": "aufbau-eroberung",
-      "file": "board.json",
-      "defaultRule": "domination"
-    }
-  ],
+  "maps": [],
   "rules": [
     {
       "id": "domination",

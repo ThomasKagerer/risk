@@ -6,16 +6,16 @@ Das Grundspiel enthält die klassische Weltkarte und klassische Regeln. Die mitg
 
 | Paket | Inhalt |
 | --- | --- |
-| `aufbau-eroberung` | Eine Karte mit derselben Geometrie wie die klassische Welt sowie die bisherigen Regeln mit Einheimischen, Burgen, Hauptstädten und Einheitenerfahrung. |
+| `aufbau-eroberung` | Nur die bisherigen Regeln mit Einheimischen, Burgen, Hauptstädten und Einheitenerfahrung. |
 | `mini-world` | Mini-Welt, bestehende halbierte Kartenboni und angepasste Startarmeen; Mehrfachplatzierung beim Aufstellen. Keine eigenen Spielregeln. |
 | `world-1700` | Welt um 1700 samt Landschaftsdaten; Mehrfachplatzierung beim Aufstellen. Keine eigenen Spielregeln. |
 | `europe-1871` | Europa um 1871 samt Landschaftsdaten. Keine eigenen Spielregeln; die Startaufstellung bleibt unverändert. |
 
-Regelmodi bleiben mit anderen verfügbaren Karten kombinierbar. Wer die Aufbau-Karte auswählt, bekommt deren Regelmodus vorgeschlagen. Klassisch bleibt die Voreinstellung. Im Aufstellen erlauben Mini-Welt und Welt um 1700 Figuren mit 1, 5 oder 10 Einheiten. Im Duell erhält die neutrale Armee weiterhin eine Einheit je zwei platzierte menschliche Einheiten. Reserven werden um die tatsächliche Anzahl vermindert.
+Regelmodi bleiben mit anderen verfügbaren Karten kombinierbar. „Aufbau & Eroberung“ wird als Regelmodus gewählt und bringt keine eigene Karte mit. Klassisch bleibt die Voreinstellung. Im Aufstellen erlauben Mini-Welt und Welt um 1700 Figuren mit 1, 5 oder 10 Einheiten. Im Duell erhält die neutrale Armee weiterhin eine Einheit je zwei platzierte menschliche Einheiten. Reserven werden um die tatsächliche Anzahl vermindert.
 
 ## Paketformat
 
-Jedes Paket benötigt `dlc.json` und mindestens eine Kartendatei:
+Jedes Paket benötigt `dlc.json` und mindestens eine Karte oder einen Regelmodus. Reine Regel-DLCs dürfen `maps` weglassen oder als leeres Array angeben. Beispiel für ein Karten-DLC:
 
 ```json
 {
