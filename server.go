@@ -373,7 +373,7 @@ func (s *server) create(w http.ResponseWriter, r *http.Request) {
 		input.Rules = "classic"
 	}
 	if input.Rules != "classic" && input.Rules != "domination" {
-		problem(w, 400, errors.New("Wähle Klassisch oder Domination."))
+		problem(w, 400, errors.New("Wähle Klassisch oder Aufbau & Eroberung."))
 		return
 	}
 	if input.Rules == "classic" {
@@ -697,7 +697,7 @@ func main() {
 		defer cancel()
 		_ = h.Shutdown(shutdown)
 	}()
-	log.Printf("Domination läuft auf http://%s", *addr)
+	log.Printf("Weltspiel läuft auf http://%s", *addr)
 	if err = h.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}

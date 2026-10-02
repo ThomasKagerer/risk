@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#192c30">
-  <meta name="description" content="Domination – das strategische Weltspiel für gemeinsame Partien im Browser.">
-  <title>Domination · Das Weltspiel</title>
+  <meta name="description" content="Weltspiel – das strategische Kartenspiel für gemeinsame Partien im Browser.">
+  <title>Weltspiel · Strategieatlas</title>
   <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
   <link rel="stylesheet" href="/_build/{{FRONTEND_VERSION}}/style.css">
   <script type="module" src="/_build/{{FRONTEND_VERSION}}/app.js"></script>
 </head>
 <body class="start-screen">
   <header class="topbar">
-    <a href="/" class="brand" aria-label="Domination Startseite"><span class="brand-mark">✦</span><span>DOMINATION<small>DAS WELTSPIEL</small></span></a>
+    <a href="/" class="brand" aria-label="Weltspiel Startseite"><span class="brand-mark">✦</span><span>WELTSPIEL<small>STRATEGIEATLAS</small></span></a>
     <div class="header-center" id="room-label">42 Gebiete. Eine Welt.</div>
     <nav aria-label="Spieloptionen">
       <span id="connection" class="connection" hidden>Verbunden</span>
@@ -42,7 +42,7 @@
           <g class="ocean-type" aria-hidden="true"><text x="91" y="287">PAZIFISCHER</text><text x="105" y="302">OZEAN</text><text x="298" y="198" transform="rotate(-68 298 198)">ATLANTISCHER OZEAN</text><text x="502" y="444">INDISCHER OZEAN</text><text x="713" y="266">PAZIFIK</text></g>
           <g id="sea-routes" aria-hidden="true"></g><g id="coastlines" pointer-events="none" aria-hidden="true"></g><g id="countries"></g><g id="terrain" pointer-events="none" aria-hidden="true"></g><g id="continent-borders" pointer-events="none" aria-hidden="true"></g><g id="continent-highlight" pointer-events="none" aria-hidden="true"></g><g id="units" pointer-events="none"></g><g id="markers"></g><g id="continent-labels" pointer-events="none" aria-hidden="true"></g><g id="attack-route" pointer-events="none" aria-hidden="true"></g>
           <g class="compass" transform="translate(93,403)" aria-hidden="true"><circle r="28"/><circle r="22"/><path d="M0-32 5-5 0 0-5 5ZM0 32-5 5 0 0 5-5ZM-32 0-5-5 0 0 5 5ZM32 0 5 5 0 0-5-5Z"/><path class="compass-fine" d="M-37 0H37M0-37V37M-21-21 21 21M21-21-21 21"/><text y="-41">N</text><text y="47">S</text><text x="-44" y="3">W</text><text x="44" y="3">O</text></g>
-          <g class="atlas-caption" aria-hidden="true"><path d="M551 460h147"/><text x="697" y="473">DOMINATION · WELTATLAS</text><text x="697" y="482" class="atlas-caption-small">42 GEBIETE / 6 KONTINENTE</text></g>
+          <g class="atlas-caption" aria-hidden="true"><path d="M551 460h147"/><text x="697" y="473">WELTSPIEL · WELTATLAS</text><text x="697" y="482" class="atlas-caption-small">42 GEBIETE / 6 KONTINENTE</text></g>
           </g>
           <g class="map-neatline" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="782" height="482" rx="3"/><path d="M9 22V9h13M778 9h13v13M791 478v13h-13M22 491H9v-13"/></g>
         </svg>
@@ -52,7 +52,7 @@
       <div id="ownership-key" class="ownership-key" aria-label="Kennzeichnung der Armeen" hidden><span><i class="player-key"></i>Spieler</span><span><i class="native-key"></i><b id="native-key-label">Einheimische</b> · kein Spieler</span></div>
       <div id="continents" class="continent-key" aria-label="Kontinente auf der Karte hervorheben"></div>
       <section class="hand-section" id="hand-section" hidden><div class="section-title"><h2>Deine Karten <span id="hand-count">0</span></h2><button id="trade-open" class="quiet" disabled>Karten eintauschen ↗</button></div><div class="hand" id="hand"></div><p class="muted" id="card-hint"></p></section>
-      <footer class="board-footer"><span>DOMINATION <span class="footer-cross">✦</span> WELTEROBERUNG</span><button class="text-link" id="credits-open">Quellen &amp; Credits</button></footer>
+      <footer class="board-footer"><span>WELTSPIEL <span class="footer-cross">✦</span> WELTEROBERUNG</span><button class="text-link" id="credits-open">Quellen &amp; Credits</button></footer>
     </section>
     <aside class="sidebar" id="sidebar" aria-label="Spielsteuerung"><div class="panel loading">Spielbrett wird geladen …</div></aside>
   </main>

@@ -4,12 +4,18 @@ WORKDIR /src
 COPY go.mod ./
 COPY *.go ./
 COPY web/ ./web/
+COPY LICENSE THIRD_PARTY.md README.md ./
+COPY licenses/ ./licenses/
+COPY docs/ ./docs/
 RUN CGO_ENABLED=0 go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /domination . \
     && mkdir -p /empty
 
 FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /domination /domination
+COPY --from=build /src/LICENSE /src/THIRD_PARTY.md /src/README.md /usr/share/doc/weltspiel/
+COPY --from=build /src/licenses/ /usr/share/doc/weltspiel/licenses/
+COPY --from=build /src/docs/ /usr/share/doc/weltspiel/docs/
 COPY --from=build --chown=65532:65532 /empty /data
 USER 65532:65532
 WORKDIR /data

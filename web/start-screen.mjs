@@ -10,7 +10,7 @@ export function startScreenMarkup({mapPicker, description, name, email, lastRoom
         <div class="start-step-label" id="home-step-label">1 / 2 · Karte & Regeln</div>
         <div class="start-form-scroll">
           <div id="home-step-map">${mapPicker}<p class="fine" id="map-description">${escape(description)}</p>
-            <label for="game-rules">Spielmodus</label><select id="game-rules"><option value="classic">Klassisch</option><option value="domination">Domination</option></select><p class="fine" id="rules-description">Freie Länder, Einheimische und ausbaubare Burgen.</p>
+            <label for="game-rules">Spielmodus</label><select id="game-rules"><option value="classic">Klassisch</option><option value="domination">Aufbau &amp; Eroberung</option></select><p class="fine" id="rules-description">Freie Länder, Einheimische und ausbaubare Burgen.</p>
             <label for="game-goal">Spielziel</label><select id="game-goal"><option value="domination">Welteroberung</option><option value="capital">Hauptstadt · Burg verteidigen</option></select>
             <p class="fine" id="goal-description">Erobere die Welt und besiege die anderen Spieler.</p>
             <label for="card-mode">Kartenbonus</label><select id="card-mode"><option value="fixed">Feste Boni · 4 / 6 / 8 / 10</option><option value="progressive">Steigende Boni · 4 / 6 / 8 / …</option></select>
@@ -40,7 +40,7 @@ export function bindStartScreen(root, {code, mapName, onCreate}) {
     $('#home-back').hidden=next===1;
     $('#home-step-label').textContent=next===1?'1 / 2 · Karte & Regeln':'2 / 2 · Spieler';
     $('#home-continue').textContent=next===1?'Weiter · Spieler →':'Partie erstellen →';
-    $('#home-map-summary').textContent=`${$('#game-rules').value==='classic'?'Klassisch':'Domination'} · ${mapName()} · ${$('#game-goal').selectedOptions[0].textContent}`;
+    $('#home-map-summary').textContent=`${$('#game-rules').value==='classic'?'Klassisch':'Aufbau & Eroberung'} · ${mapName()} · ${$('#game-goal').selectedOptions[0].textContent}`;
     $('#create-form .start-form-scroll').scrollTop=0;
   }
   function showTab(id) {
@@ -59,7 +59,7 @@ export function bindStartScreen(root, {code, mapName, onCreate}) {
     $('#card-mode option[value=fixed]').textContent='Feste Boni · '+fixedCardValues(mini?'simple-world':'classic').join(' / ');
     $('#card-mode option[value=progressive]').textContent='Steigende Boni · '+fixedCardValues(mini?'simple-world':'classic').slice(0,3).join(' / ')+' / …';
     $('#goal-description').textContent=mission?'Erfülle deinen geheimen Auftrag: Länder besetzen, Regionen erobern oder eine bestimmte Armee besiegen. Ab 3 Spielern. Länderziele skalieren mit der Kartengröße.':$('#game-goal').value==='capital'?'Deine Hauptstadt startet als Hütte mit Palisadenzaun und drei besetzbaren Würfelplätzen. Fällt sie, scheidest du aus.':'Erobere die Welt und besiege die anderen Spieler.';
-    $('#rules-description').textContent=classic?'Klassische Risiko-Regeln auf der gewählten Karte. Ohne Einheimische, Burgausbau und Geländeboni.':'Freie Länder, Einheimische und ausbaubare Burgen.';
+    $('#rules-description').textContent=classic?'Klassische Eroberungsregeln auf der gewählten Karte. Ohne Einheimische, Burgausbau und Geländeboni.':'Freie Länder, Einheimische und ausbaubare Burgen.';
     $('#setup-description').textContent=classic?(mission?'3–6 Spieler · Geheime Missionen und zufällig verteilte Startländer.':'2–6 Spieler · Alle Länder werden verteilt. Zu zweit mit passiver neutraler Armee.')+' Startarmeen werden an die Kartengröße angepasst.':mini?'2–6 Spieler · Zwei Startländer pro Spieler · 8 zusätzliche Einheiten.':'2–6 Spieler · Fünf Startländer pro Spieler · 15 zusätzliche Einheiten.';
   }
   let previousRules='domination',dominationCards='fixed';

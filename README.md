@@ -1,8 +1,8 @@
-# Risk – Domination Web
+# Weltspiel · Strategieatlas
 
-Brettspiel im Browser für 2–6 Spieler, mit Hotseat, Einladungslinks und lokalen Computergegnern. Enthält klassische Regeln, Domination-Hausregeln, Missionen, Hauptstädte, mehrere Karten, Gebäude und Einheitenerfahrung.
+Brettspiel im Browser für 2–6 Spieler, mit Hotseat, Einladungslinks und lokalen Computergegnern. Enthält die Modi „Klassisch“ und „Aufbau & Eroberung“, Missionen, Hauptstädte, mehrere Karten, Gebäude und Einheitenerfahrung.
 
-Neue Partien starten standardmäßig mit klassischen Risiko-Regeln, der klassischen Weltkarte und steigenden Kartenboni.
+Neue Partien starten standardmäßig mit klassischen Eroberungsregeln, der klassischen Weltkarte und steigenden Kartenboni.
 
 Diese Spielversion enthält keine LLM-Anbindung, Trainingsdienste oder Modellgewichte. Lokale Strategie-Bots, Ragnar und Klaus Störtebeker sind enthalten.
 
@@ -34,4 +34,4 @@ node --test tools/*.test.mjs
 
 ## Lizenz und Quellen
 
-GPL-3.0, siehe [LICENSE](LICENSE). Herkunft der Karten, Sounds und geografischen Daten: [THIRD_PARTY.md](THIRD_PARTY.md). Unabhängiges Projekt; RISK/RISIKO ist eine Marke von Hasbro.
+GPL-3.0, siehe [LICENSE](LICENSE). Herkunft der Karten, Sounds und geografischen Daten: [THIRD_PARTY.md](THIRD_PARTY.md). Unabhängige Web-Umsetzung, kein offizielles Produkt von Hasbro oder dem Domination-Projekt. RISK/RISIKO wird ausschließlich im Rechtehinweis zur Abgrenzung genannt; der Name gehört Hasbro. Die GPL gewährt keine Rechte an fremden Marken. Offene Prüfungen und Umfang der Bereinigung: [Rechteprüfung](docs/rights-review.md).

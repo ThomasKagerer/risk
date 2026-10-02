@@ -4,7 +4,9 @@ Das nebenliegende Domination-Projekt nennt in `swingUI/res/ReadMe.txt`:
 
 > Copyright (c) 2003-2025 yura.net
 
-Es verweist auf die GNU General Public License. Die mitgelieferte `gpl.txt` enthält GPL Version 3 und wurde unverändert als `LICENSE` übernommen. Diese neue Umsetzung wird ebenfalls unter GPL-3.0 bereitgestellt.
+Es verweist auf die GNU General Public License. Die mitgelieferte `gpl.txt` enthält GPL Version 3 und wurde unverändert als `LICENSE` übernommen. Diese neue Umsetzung wird ebenfalls unter GPL-3.0 bereitgestellt. Der ursprüngliche Copyright- und Lizenzhinweis ist unverändert unter [Domination-ReadMe.txt](licenses/Domination-ReadMe.txt) beigefügt. Upstream: [Domination von Yura Mamyrin](https://domination.sourceforge.io/).
+
+Lizenzprüfung am 2. Oktober 2026: `LICENSE` ist bytegleich mit der lokal vorliegenden `Domination/gpl.txt` (GPL Version 3). Das Upstream-ReadMe erklärt das Projekt als GPL; bei den hier verwendeten Karten, Übersetzungen und fünf Sounds wurde in den geprüften Quelldateien kein abweichender Lizenzhinweis gefunden. Für die Sounds liegt nur der allgemeine Projekt-Lizenzhinweis vor, keine individuelle Rechteerklärung. Diese Prüfung bestätigt die dokumentierte Lizenz, nicht die gesamte Rechtekette.
 
 Übernommen bzw. daraus abgeleitet:
 
@@ -18,7 +20,7 @@ Es verweist auf die GNU General Public License. Die mitgelieferte `gpl.txt` enth
 
 Die Weltkartendatei nennt **Christian Domsch, Sebastian Kirsch, Andreas Habel und Dirk Engberg**. Kartendatei und allgemeines Projekt nennen **Yura Mamyrin**. Credits sind auch in der Oberfläche zugänglich.
 
-Der Java-Spielkern wurde als Referenz für Kartensatzwerte und Spielfluss gelesen; die Go-Engine, HTML/CSS/JavaScript-Oberfläche, Figuren und Würfel wurden neu geschrieben. Die alte Java-Oberfläche sowie Markenlogos wurden nicht kopiert.
+Der Java-Spielkern wurde als Referenz für Kartensatzwerte und Spielfluss gelesen; die Go-Engine, HTML/CSS/JavaScript-Oberfläche, Figuren und Würfel wurden neu geschrieben. Die alte Java-Oberfläche sowie Markenlogos wurden nicht kopiert. Das vorhandene Logo ist eine einfache lokale SVG-Kompasszeichnung; es zeigt keinen RISK-Schriftzug. Die aktuellen Spielklänge werden in `web/sound-effects.mjs` synthetisiert; die unveränderten, mitgelieferten MP3s sind weiterhin oben dokumentiert.
 
 Die Karte `risk.map` enthält gegenüber dem klassischen Brett abweichende Verbindungen. Stattdessen wird `world.map` verwendet: unter anderem Island–Skandinavien und Großbritannien–Skandinavien vorhanden, Ostafrika–Mittlerer Osten nicht verbunden. Für die angepasste Atlasvariante wurde Ontario–Grönland auf Nutzerwunsch entfernt; einzelne gezeichnete Grenzen wurden an die Nachbarschaften angepasst. Ägypten–Mittlerer Osten ist als Seeverbindung sichtbar. Die Nachbarschaften werden automatisiert auf Symmetrie und relevante Seestraßen geprüft.
 
@@ -37,3 +39,9 @@ Die Karte `risk.map` enthält gegenüber dem klassischen Brett abweichende Verbi
 
 - André Ourednik, [Historical Basemaps](https://github.com/aourednik/historical-basemaps), `geojson/world_1878.geojson`, GPL-3.0. Änderungen: europäischer Ausschnitt, generalisierte Rückführung der Balkangrenzen auf 1871, Bereinigung überlappender Flächen, Projektion und Teilung in Spielregionen. Abgeleitete Daten: `tools/data/europe1871-source.json.gz` und `web/assets/europe1871.json`. Details und historische Referenzen: [Europa 1871](docs/europe1871.md).
 - `web/assets/terrain-europe1871.json` enthält neu projizierte und zugeschnittene Natural-Earth- und RESOLVE-Daten aus den oben genannten Quellen. Die Waldgeometrien behalten CC BY 4.0.
+
+## Änderungen und Weitergabe
+
+Diese Web-Umsetzung verändert die übernommenen Kartendaten und verwendet einen neu geschriebenen Go-/Web-Spielkern. Am 2. Oktober 2026 wurde die sichtbare Produktbezeichnung auf „Weltspiel · Strategieatlas“ geändert; der erweiterte Regelmodus heißt „Aufbau & Eroberung“ (Preview · in progress). Herkunfts- und Copyright-Hinweise bleiben bestehen. Interne Kennungen wie `domination` dienen weiter der Spielstandkompatibilität.
+
+Bei Weitergabe des Programms gilt GPL-3.0; bei Weitergabe von Binärdateien oder Docker-Images muss auch der zugehörige vollständige Quellcode gemäß GPL §6 zugänglich sein. Eine Projekt-URL allein ersetzt diese Verpflichtung nicht. Die Lizenz gewährt keine Rechte an fremden Marken. Siehe [Rechteprüfung](docs/rights-review.md).

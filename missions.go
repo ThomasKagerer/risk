@@ -27,7 +27,7 @@ func validGoal(rules, goal string) error {
 	if goal == "" || goal == "domination" || goal == "capital" && rules != "classic" || goal == "mission" && rules == "classic" {
 		return nil
 	}
-	return errors.New("Klassisch bietet Welteroberung oder Mission; Domination bietet Welteroberung oder Hauptstadt.")
+	return errors.New("Klassisch bietet Welteroberung oder Mission; Aufbau & Eroberung bietet Welteroberung oder Hauptstadt.")
 }
 func (g *Game) missionCountryGoal(original int) int { return (original*len(g.Territories) + 41) / 42 }
 func (g *Game) missionDeck() []Mission {

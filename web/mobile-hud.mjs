@@ -93,7 +93,7 @@ export function createMobileHUD({onLayout = ()=>{}, onMapSelection = ()=>{}} = {
     const order=mobileOrder(game,selected,target,countries),p=game.players[game.me];
     root.style.setProperty('--seat-color',['#b84e40','#477ca0','#b59036','#6c8753','#896b91','#ad7350'][game.actor]||'#414e4b');
     const set=(selector,text)=>{const node=root.querySelector(selector);if(node.textContent!==String(text))node.textContent=text;};
-    set('.hud-round',`RUNDE ${game.round || 1} · ${game.goal==='mission'?'MISSION':game.rules==='classic'?'KLASSISCH':game.goal==='capital'?'HAUPTSTADT':'DOMINATION'}`);
+    set('.hud-round',`RUNDE ${game.round || 1} · ${game.goal==='mission'?'MISSION':game.rules==='classic'?'KLASSISCH':game.goal==='capital'?'HAUPTSTADT':'AUFBAU & EROBERUNG'}`);
     set('.hud-actor',game.paused?'Partie pausiert':game.actor===game.me&&!game.hotseat?'Du bist am Zug':`${game.players[game.actor]?.name || 'Gegner'} ist am Zug`);
     set('.hud-phase',game.paused?'PAUSE':`${phases[game.phase]}${game.hotseat?' · '+game.players[game.actor].name:''}`);set('.hud-order-title',order.title);set('.hud-order-hint',order.hint);
     set('.hud-card-count',game.hand?.length||0);
