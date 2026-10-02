@@ -1,6 +1,6 @@
 # Weltspiel · Strategieatlas
 
-Brettspiel im Browser für 2–6 Spieler, mit Hotseat, Einladungslinks und lokalen Computergegnern. Das Grundspiel enthält klassische Regeln und die Karten „Klassische Welt“ und „Europa um 1871“. „Aufbau & Eroberung“, „Mini-Welt“ und „Welt um 1700“ werden als getrennte DLC-Pakete mitgeliefert.
+Brettspiel im Browser für 2–6 Spieler, mit Hotseat, Einladungslinks und lokalen Computergegnern. Das Grundspiel enthält klassische Regeln und die Karte „Klassische Welt“. „Aufbau & Eroberung“, „Mini-Welt“, „Welt um 1700“ und „Europa um 1871“ werden als getrennte DLC-Pakete mitgeliefert.
 
 Neue Partien starten standardmäßig mit klassischen Eroberungsregeln, der klassischen Weltkarte und steigenden Kartenboni.
 

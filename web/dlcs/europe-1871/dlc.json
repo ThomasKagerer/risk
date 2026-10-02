@@ -1,0 +1,14 @@
+{
+  "format": 1,
+  "id": "europe-1871",
+  "name": "Europa um 1871",
+  "version": "1.0.0",
+  "maps": [
+    {
+      "id": "europe1871",
+      "file": "europe1871.json",
+      "terrain": "terrain-europe1871.json"
+    }
+  ],
+  "rules": []
+}

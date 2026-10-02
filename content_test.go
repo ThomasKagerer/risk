@@ -11,7 +11,7 @@ import (
 
 func TestCoreLoadsWithoutAnyDLC(t *testing.T) {
 	source := fstest.MapFS{}
-	for _, file := range []string{"board.json", "europe1871.json", "terrain-europe1871.json"} {
+	for _, file := range []string{"board.json"} {
 		path := "web/assets/" + file
 		data, err := assets.ReadFile(path)
 		if err != nil {
@@ -23,7 +23,7 @@ func TestCoreLoadsWithoutAnyDLC(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Packages) != 0 || len(c.Maps) != 2 || len(c.Rules) != 1 || c.rules["classic"].Buildings || c.boards["world120"] != nil {
+	if len(c.Packages) != 0 || len(c.Maps) != 1 || len(c.Rules) != 1 || c.rules["classic"].Buildings || c.boards["world120"] != nil || c.boards["europe1871"] != nil {
 		t.Fatal("DLC content leaked into the core", c)
 	}
 }
@@ -32,10 +32,10 @@ func TestBundledDLCPackagesAreIndependent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Packages) != 3 || len(c.Maps) != 5 || len(c.Rules) != 2 {
+	if len(c.Packages) != 4 || len(c.Maps) != 5 || len(c.Rules) != 2 {
 		t.Fatal("unexpected installed catalog")
 	}
-	for _, id := range []string{"mini-world", "world-1700"} {
+	for _, id := range []string{"mini-world", "world-1700", "europe-1871"} {
 		source, err := fs.Sub(assets, "web/dlcs/"+id)
 		if err != nil {
 			t.Fatal(err)
@@ -44,7 +44,7 @@ func TestBundledDLCPackagesAreIndependent(t *testing.T) {
 		if err = only.addPackage(source); err != nil {
 			t.Fatal(err)
 		}
-		if len(only.Rules) != 1 || len(only.Maps) != 1 || !only.Maps[0].MultiPlacement {
+		if len(only.Rules) != 1 || len(only.Maps) != 1 || only.Maps[0].MultiPlacement != (id != "europe-1871") {
 			t.Fatal("map DLC changed base rules or lost multi-placement")
 		}
 	}

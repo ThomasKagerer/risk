@@ -116,7 +116,7 @@ def build():
     data=dict(id='europe1871',name='Europa um 1871',era=1871,width=800,height=500,maxZoom=18,artwork='historical-1871',description=f'{len(countries)} Spielregionen in Europa nach der Reichsgründung. Historisch angenäherte Staatsgrenzen, vereinfachte innere Gebiete.',countries=countries,continents=[dict(id=i,name=n,bonus=b) for i,(n,b) in enumerate(CONTINENTS,1)],cards=cards,routes=routes,wrapRoute=[],coastPath=svg_path(land.simplify(.15)))
     from build_continents import add_continents
     add_continents(data)
-    (ROOT/'web/assets/europe1871.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
+    (ROOT/'web/dlcs/europe-1871/europe1871.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
     terrain(data,land)
     print(f'Built Europe: {len(countries)} regions, {len(cards)} cards, {sum(map(len,neighbors))//2} borders, {len(routes)} sea routes.')
 
@@ -143,7 +143,7 @@ def terrain(board,land):
     settlements=[dict(name=n,x=round(project(x,y)[0],2),y=round(project(x,y)[1],2)) for n,x,y in towns if EXTENT.contains(G.Point(x,y)) and land.distance(G.Point(project(x,y)))<2]
     assign_settlement_territories(settlements,board)
     data=dict(forestTiles=forest_tiles(forest),mountains=mountains,rivers=rivers,settlements=settlements)
-    (ROOT/'web/assets/terrain-europe1871.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
+    (ROOT/'web/dlcs/europe-1871/terrain-europe1871.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
 
 if __name__=='__main__':
     if len(sys.argv)>1:prepare(sys.argv[1])

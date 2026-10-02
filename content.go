@@ -285,7 +285,7 @@ func (c *contentCatalog) addPackage(source fs.FS) error {
 func loadContent() (*contentCatalog, error) { return loadContentFrom(assets) }
 func loadContentFrom(source fs.FS) (*contentCatalog, error) {
 	c := newContentCatalog()
-	for _, entry := range []struct{ id, file, terrain string }{{"classic", "board.json", ""}, {"europe1871", "europe1871.json", "terrain-europe1871.json"}} {
+	for _, entry := range []struct{ id, file, terrain string }{{"classic", "board.json", ""}} {
 		data, err := fs.ReadFile(source, "web/assets/"+entry.file)
 		if err != nil {
 			return nil, err
@@ -342,7 +342,7 @@ func (s *server) serveContent(w http.ResponseWriter, r *http.Request) bool {
 		return true
 	}
 	// Old bookmarks/tests can still request map data at the previous asset URLs.
-	id := map[string]string{"world120.json": "world120", "simple-world.json": "simple-world", "terrain.json": "world120/terrain"}[path.Base(r.URL.Path)]
+	id := map[string]string{"world120.json": "world120", "simple-world.json": "simple-world", "terrain.json": "world120/terrain", "europe1871.json": "europe1871", "terrain-europe1871.json": "europe1871/terrain"}[path.Base(r.URL.Path)]
 	if strings.Contains(r.URL.Path, "/assets/") && id != "" {
 		if data, ok := content.files["/api/content/maps/"+id]; ok {
 			w.Header().Set("Content-Type", "application/json")

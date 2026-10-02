@@ -2,15 +2,16 @@
 
 Ein DLC ist ein Ordner unter `web/dlcs/<id>/`. Der Build nimmt alle dort liegenden Dateien automatisch in die Spielanwendung auf (`go:embed web`, auch im Docker-Build). Beim Start entdeckt und validiert der Server die Pakete. Die Oberfläche lädt Karten und Regelmodi über `/api/content`. Es gibt keinen Upload, Download oder Installationsdienst. Ein neues Paket wird vor dem Build in diesen Ordner gelegt; danach wird das Spiel neu gebaut und gestartet.
 
-Das Grundspiel enthält die klassische Weltkarte, Europa um 1871 und klassische Regeln. Die mitgelieferten Erweiterungen sind:
+Das Grundspiel enthält die klassische Weltkarte und klassische Regeln. Die mitgelieferten Erweiterungen sind:
 
 | Paket | Inhalt |
 | --- | --- |
 | `aufbau-eroberung` | Eine Karte mit derselben Geometrie wie die klassische Welt sowie die bisherigen Regeln mit Einheimischen, Burgen, Hauptstädten und Einheitenerfahrung. |
 | `mini-world` | Mini-Welt, bestehende halbierte Kartenboni und angepasste Startarmeen; Mehrfachplatzierung beim Aufstellen. Keine eigenen Spielregeln. |
 | `world-1700` | Welt um 1700 samt Landschaftsdaten; Mehrfachplatzierung beim Aufstellen. Keine eigenen Spielregeln. |
+| `europe-1871` | Europa um 1871 samt Landschaftsdaten. Keine eigenen Spielregeln; die Startaufstellung bleibt unverändert. |
 
-Regelmodi bleiben mit anderen verfügbaren Karten kombinierbar. Wer die Aufbau-Karte auswählt, bekommt deren Regelmodus vorgeschlagen. Klassisch bleibt die Voreinstellung. Im Aufstellen erlauben die beiden Karten-DLCs Figuren mit 1, 5 oder 10 Einheiten. Im Duell erhält die neutrale Armee weiterhin eine Einheit je zwei platzierte menschliche Einheiten. Reserven werden um die tatsächliche Anzahl vermindert.
+Regelmodi bleiben mit anderen verfügbaren Karten kombinierbar. Wer die Aufbau-Karte auswählt, bekommt deren Regelmodus vorgeschlagen. Klassisch bleibt die Voreinstellung. Im Aufstellen erlauben Mini-Welt und Welt um 1700 Figuren mit 1, 5 oder 10 Einheiten. Im Duell erhält die neutrale Armee weiterhin eine Einheit je zwei platzierte menschliche Einheiten. Reserven werden um die tatsächliche Anzahl vermindert.
 
 ## Paketformat
 
@@ -44,6 +45,6 @@ Ein optionales `helpModule` verweist auf ein mitgebautes `.mjs`-Modul. Es export
 
 ## Kompatibilität
 
-Die bisherigen Kennungen `domination`, `world120` und `simple-world` bleiben bestehen. Alte Spielstände lösen ihre Regeln über das installierte Paket auf; neue Spielstände speichern zusätzlich die verwendete Regeldefinition. Die bisherigen Kartendatei-URLs bleiben als Weiterleitungen auf die Paketdaten lesbar. Ein fehlendes Kartenpaket wird beim Laden eines Spielstands als unbekannte Karte gemeldet. Ohne DLC-Ordner lädt das Grundspiel weiterhin; ungültige oder doppelte Pakete verhindern den Start mit einer konkreten Fehlermeldung.
+Die bisherigen Kennungen `domination`, `world120`, `simple-world` und `europe1871` bleiben bestehen. Alte Spielstände lösen ihre Regeln über das installierte Paket auf; neue Spielstände speichern zusätzlich die verwendete Regeldefinition. Die bisherigen Kartendatei-URLs bleiben über die Paketdaten lesbar. Ein fehlendes Kartenpaket wird beim Laden eines Spielstands als unbekannte Karte gemeldet. Ohne DLC-Ordner lädt das Grundspiel weiterhin; ungültige oder doppelte Pakete verhindern den Start mit einer konkreten Fehlermeldung.
 
 Prüfen: `go test -race ./...` und `node --test tools/*.test.mjs`.

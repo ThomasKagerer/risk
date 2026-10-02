@@ -42,7 +42,7 @@ func TestEurope1871BoardIntegrity(t *testing.T) {
 			Era    int
 		}
 	}
-	data, _ := assets.ReadFile("web/assets/europe1871.json")
+	data, _ := assets.ReadFile("web/dlcs/europe-1871/europe1871.json")
 	json.Unmarshal(data, &raw)
 	if b.Countries[1].Continent == b.Countries[5].Continent {
 		t.Fatal("British Isles and Nordic countries must have separate bonuses")

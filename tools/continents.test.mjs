@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { controlledContinents, continentSelection } from '../web/continents.mjs';
 
-const boards=await Promise.all(['board','world120','europe1871','simple-world'].map(async name=>JSON.parse(await readFile(new URL(name==='world120'?'../web/dlcs/world-1700/world120.json':name==='simple-world'?'../web/dlcs/mini-world/simple-world.json':`../web/assets/${name}.json`,import.meta.url)))));
+const boards=await Promise.all(['board','world120','europe1871','simple-world'].map(async name=>JSON.parse(await readFile(new URL(name==='world120'?'../web/dlcs/world-1700/world120.json':name==='europe1871'?'../web/dlcs/europe-1871/europe1871.json':name==='simple-world'?'../web/dlcs/mini-world/simple-world.json':`../web/assets/${name}.json`,import.meta.url)))));
 
 test('continent control follows complete ownership, including an immediate loss and reconquest',()=>{
   for(const board of boards){

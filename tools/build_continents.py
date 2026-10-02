@@ -85,7 +85,7 @@ def add_continents(board):
 if __name__ == '__main__':
     root = Path(__file__).resolve().parents[1] / 'web/assets'
     for name in ['board', 'world120', 'europe1871', 'simple-world']:
-        target = root.parent / 'dlcs/world-1700/world120.json' if name == 'world120' else root.parent / 'dlcs/mini-world/simple-world.json' if name == 'simple-world' else root / f'{name}.json'
+        target = root.parent / 'dlcs/world-1700/world120.json' if name == 'world120' else root.parent / 'dlcs/mini-world/simple-world.json' if name == 'simple-world' else root.parent / 'dlcs/europe-1871/europe1871.json' if name == 'europe1871' else root / f'{name}.json'
         data = add_continents(json.loads(target.read_text()))
         target.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')))
         print(f"{name}: {len(data['continents'])} continent outlines")

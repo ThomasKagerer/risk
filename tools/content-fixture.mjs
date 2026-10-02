@@ -4,7 +4,7 @@ import { localize as tr } from '../web/i18n.mjs';
 import { fixedCardValues, progressiveCardValue } from '../web/card-values.mjs';
 import { buildingNames } from '../web/buildings.mjs';
 import { createRuleHelp } from '../web/dlcs/aufbau-eroberung/rules-help.mjs';
-const packages=await Promise.all(['aufbau-eroberung','mini-world','world-1700'].map(id=>readFile(new URL(`../web/dlcs/${id}/dlc.json`,import.meta.url),'utf8').then(JSON.parse)));
+const packages=await Promise.all(['aufbau-eroberung','mini-world','world-1700','europe-1871'].map(id=>readFile(new URL(`../web/dlcs/${id}/dlc.json`,import.meta.url),'utf8').then(JSON.parse)));
 export const bundledCatalog={packages,maps:packages.flatMap(p=>p.maps),rules:[{id:'classic',name:'Klassisch',goals:['domination','mission']},...packages.flatMap(p=>p.rules||[])]};
 configureContent(bundledCatalog);
 registerRuleHelp('domination',createRuleHelp({tr,fixedCardValues,progressiveCardValue,buildingNames}));
