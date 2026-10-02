@@ -1,0 +1,12 @@
+/data/
+/bin/
+/test-results/
+*.test
+.env
+.env.*
+.secrets/
+.DS_Store
+__pycache__/
+/training/
+/artifacts/
+/.venv*/

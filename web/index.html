@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#192c30">
+  <meta name="description" content="Domination – das strategische Weltspiel für gemeinsame Partien im Browser.">
+  <title>Domination · Das Weltspiel</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+  <link rel="stylesheet" href="/_build/{{FRONTEND_VERSION}}/style.css">
+  <script type="module" src="/_build/{{FRONTEND_VERSION}}/app.js"></script>
+</head>
+<body class="start-screen">
+  <header class="topbar">
+    <a href="/" class="brand" aria-label="Domination Startseite"><span class="brand-mark">✦</span><span>DOMINATION<small>DAS WELTSPIEL</small></span></a>
+    <div class="header-center" id="room-label">42 Gebiete. Eine Welt.</div>
+    <nav aria-label="Spieloptionen">
+      <span id="connection" class="connection" hidden>Verbunden</span>
+      <button class="icon-button" id="reconnect" aria-label="Neu verbinden" title="Neu verbinden" hidden>↻</button>
+      <button class="icon-button" id="sound-toggle" aria-label="Ton einschalten" title="Ton einschalten">♫<span class="sound-off">/</span></button>
+      <button id="pause-game" class="quiet pause-button" hidden>Ⅱ Pause</button>
+      <span id="auto-defense-header" class="auto-defense-global" hidden></span>
+      <button class="quiet" id="rules-open">Spielregeln <span>?</span></button>
+    </nav>
+  </header>
+  <div id="players" class="players" aria-label="Spieler"></div>
+  <section id="game-statistics" class="game-statistics" aria-label="Spielstatistik" hidden></section>
+  <main class="game-layout">
+    <section class="board-section" aria-label="Weltkarte und Handkarten">
+      <div class="board-heading"><div><span class="eyebrow" id="round-label">DAS SPIELBRETT</span><h1 id="board-title">Die Welt liegt vor dir.</h1></div><div class="board-map"><span class="board-edition">WELT UM 1700 <b>120</b></span><a id="choose-map" class="map-change" href="#map-choice">Spielkarte wählen ↗</a></div></div>
+      <div class="map-frame" id="map-frame">
+        <select id="focus-territory" class="map-search" aria-label="Gebiet auf der Karte finden"><option value="">Gebiet finden …</option></select>
+        <div class="map-controls" aria-label="Kartenansicht"><button id="zoom-in" aria-label="Karte vergrößern">+</button><button id="zoom-out" aria-label="Karte verkleinern">−</button><button id="zoom-reset" aria-label="Karte ganz anzeigen">⤢</button></div>
+        <svg id="world" viewBox="0 0 800 500" role="group" aria-label="Spielbrett mit 42 wählbaren Gebieten">
+          <defs>
+            <radialGradient id="ocean-wash" cx=".5" cy=".4" r=".75"><stop stop-color="#dfebe3"/><stop offset="1" stop-color="#b4d0cd"/></radialGradient>
+            <pattern id="ocean-grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M50 0H0V50" fill="none" stroke="#557b7d" stroke-opacity=".1" stroke-width=".45"/></pattern>
+            <pattern id="native-hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#d4d8d5"/><path d="M-1 1 1-1M0 7 7 0M6 8 8 6" fill="none" stroke="#8b9691" stroke-width=".85"/></pattern>
+          </defs>
+          <g id="map-camera"><rect width="800" height="500" fill="url(#ocean-wash)"/><rect width="800" height="500" fill="url(#ocean-grid)"/>
+          <g class="ocean-lines" aria-hidden="true"><path d="M0 167Q400 194 800 167M0 333Q400 306 800 333M133 0Q96 250 133 500M267 0Q248 250 267 500M533 0Q552 250 533 500M667 0Q704 250 667 500"/><path class="equator" d="M0 250H800"/></g>
+          <g class="ocean-type" aria-hidden="true"><text x="91" y="287">PAZIFISCHER</text><text x="105" y="302">OZEAN</text><text x="298" y="198" transform="rotate(-68 298 198)">ATLANTISCHER OZEAN</text><text x="502" y="444">INDISCHER OZEAN</text><text x="713" y="266">PAZIFIK</text></g>
+          <g id="sea-routes" aria-hidden="true"></g><g id="coastlines" pointer-events="none" aria-hidden="true"></g><g id="countries"></g><g id="terrain" pointer-events="none" aria-hidden="true"></g><g id="continent-borders" pointer-events="none" aria-hidden="true"></g><g id="continent-highlight" pointer-events="none" aria-hidden="true"></g><g id="units" pointer-events="none"></g><g id="markers"></g><g id="continent-labels" pointer-events="none" aria-hidden="true"></g><g id="attack-route" pointer-events="none" aria-hidden="true"></g>
+          <g class="compass" transform="translate(93,403)" aria-hidden="true"><circle r="28"/><circle r="22"/><path d="M0-32 5-5 0 0-5 5ZM0 32-5 5 0 0 5-5ZM-32 0-5-5 0 0 5 5ZM32 0 5 5 0 0-5-5Z"/><path class="compass-fine" d="M-37 0H37M0-37V37M-21-21 21 21M21-21-21 21"/><text y="-41">N</text><text y="47">S</text><text x="-44" y="3">W</text><text x="44" y="3">O</text></g>
+          <g class="atlas-caption" aria-hidden="true"><path d="M551 460h147"/><text x="697" y="473">DOMINATION · WELTATLAS</text><text x="697" y="482" class="atlas-caption-small">42 GEBIETE / 6 KONTINENTE</text></g>
+          </g>
+          <g class="map-neatline" pointer-events="none" aria-hidden="true"><rect x="9" y="9" width="782" height="482" rx="3"/><path d="M9 22V9h13M778 9h13v13M791 478v13h-13M22 491H9v-13"/></g>
+        </svg>
+        <div class="map-hint" id="map-hint">Ein Gebiet antippen, um es anzusehen</div>
+        <div id="attack-intro" class="attack-intro" role="status" aria-live="polite" hidden><div class="attack-intro-route"><div><small>Angriff aus</small><strong id="attack-intro-from"></strong></div><span aria-hidden="true">→</span><div><small>Ziel</small><strong id="attack-intro-to"></strong></div></div><div class="attack-intro-status"><span id="attack-intro-countdown"></span><button id="pause-intro" class="quiet">Ⅱ Pause</button><button id="stop-auto-map" class="quiet" hidden>■ Automatik stoppen</button></div></div>
+      </div>
+      <div id="ownership-key" class="ownership-key" aria-label="Kennzeichnung der Armeen" hidden><span><i class="player-key"></i>Spieler</span><span><i class="native-key"></i><b id="native-key-label">Einheimische</b> · kein Spieler</span></div>
+      <div id="continents" class="continent-key" aria-label="Kontinente auf der Karte hervorheben"></div>
+      <section class="hand-section" id="hand-section" hidden><div class="section-title"><h2>Deine Karten <span id="hand-count">0</span></h2><button id="trade-open" class="quiet" disabled>Karten eintauschen ↗</button></div><div class="hand" id="hand"></div><p class="muted" id="card-hint"></p></section>
+      <footer class="board-footer"><span>DOMINATION <span class="footer-cross">✦</span> WELTEROBERUNG</span><button class="text-link" id="credits-open">Quellen &amp; Credits</button></footer>
+    </section>
+    <aside class="sidebar" id="sidebar" aria-label="Spielsteuerung"><div class="panel loading">Spielbrett wird geladen …</div></aside>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="modal"><div class="modal-header"><h2 id="modal-title"></h2><button class="icon-button" id="modal-close" aria-label="Schließen">×</button></div><div id="modal-content"></div></dialog>
+  <div class="dice-overlay" id="dice-overlay" hidden aria-live="polite"><div class="dice-mat" role="region" aria-label="Schlachtfeld"><div class="combat-toolbar"><button id="close-combat" class="combat-close" aria-label="Schlachtfeld schließen">← Zur Karte</button><button id="pause-combat" class="combat-expand">Ⅱ Pause</button><span id="auto-defense-combat" class="auto-defense-global" hidden></span><button id="minimize-combat" class="combat-expand" aria-label="Kampf minimieren: nur Würfel und Ergebnisse" aria-pressed="false">− Minimieren</button><button id="expand-combat" class="combat-expand" aria-label="Schlachtfeld vergrößern" aria-pressed="false">⛶ Vergrößern</button></div><span class="eyebrow">DIE WÜRFEL FALLEN</span><h2 id="battle-title"></h2><div id="combat-scene" hidden></div><div class="dice-teams"><div><span class="dice-label">ANGRIFF</span><div class="dice-row" id="attack-dice"></div></div><span class="versus">VS</span><div><span class="dice-label">VERTEIDIGUNG</span><div class="dice-row" id="defense-dice"></div></div></div><div id="battle-result" class="battle-result"></div><div id="battle-controls"></div><button class="primary red auto-stop-overlay" id="stop-auto-overlay" hidden>■ Automatik stoppen</button></div></div>
+  <noscript>Bitte aktiviere JavaScript, um Domination zu spielen.</noscript>
+</body>
+</html>

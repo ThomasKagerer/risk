@@ -1,0 +1,19 @@
+services:
+  domination:
+    build: .
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - games:/data
+    environment:
+      GOMEMLIMIT: 32MiB
+      GOGC: "50"
+    mem_limit: 64m
+    pids_limit: 32
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+
+volumes:
+  games:
