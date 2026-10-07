@@ -390,10 +390,44 @@ func TestBuildingCardPaymentIsExactAndAtomic(t *testing.T) {
 	if len(g.Players[0].Cards) != 1 || g.Players[0].Cards[0] != 3 || len(g.Discard) != 2 || g.Discard[0] != 7 || g.Discard[1] != 0 || g.Territories[0].Troops != 1 || g.Territories[0].Construction.Remaining != 5 {
 		t.Fatal("wrong card payment or build time")
 	}
-	g = makeGame()
-	g.Phase = "reinforce"
-	g.Players[0].Cards = []int{0, 1, 2, 3, 4}
-	if g.startConstruction(1, 0, &target, []int{0, 1}) == nil {
-		t.Fatal("building bypassed required trade")
+}
+
+func TestBuildingCanSpendCardsBeforeMandatoryTrade(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		hand           []int
+		from, target   int
+		cards          []int
+		mustTradeAfter bool
+	}{
+		{"citadel with five cards", []int{0, 1, 2, 3, 4}, 2, 5, []int{0, 1, 2}, false},
+		{"one stage leaves five cards", []int{0, 1, 2, 3, 4, 5}, 0, 1, []int{0}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := playing()
+			g.Rules, g.Phase, g.Pool, g.TradeOpen = "domination", "reinforce", 3, true
+			g.Territories[0] = Territory{Owner: 0, Troops: 1, BuildingLevel: tc.from}
+			g.Players[0].Cards = append([]int{}, tc.hand...)
+			if !g.mustTrade() || !g.canBuild(1, 0) {
+				t.Fatal("mandatory trade must allow building")
+			}
+			do(t, g, 0, Action{Type: "build", Territory: 1, Level: &tc.target, Cards: tc.cards}, sequence(0))
+			if g.mustTrade() != tc.mustTradeAfter || len(g.Players[0].Cards) != len(tc.hand)-len(tc.cards) || len(g.Discard) != len(tc.cards) {
+				t.Fatal("payment did not update the remaining card obligation")
+			}
+			if g.Pool != 3 || g.Trades != 0 || !g.TradeOpen || g.Phase != "reinforce" || g.Territories[0].Troops != 1 || g.Territories[0].Construction.Level != tc.target {
+				t.Fatal("building changed reinforcements, trade state or garrison")
+			}
+			before, _ := json.Marshal(g)
+			err := g.apply(0, Action{Type: "place", Territory: 1, Amount: 1, Revision: g.Revision}, sequence(0))
+			if tc.mustTradeAfter {
+				after, _ := json.Marshal(g)
+				if err == nil || string(before) != string(after) {
+					t.Fatal("remaining mandatory trade must block placement")
+				}
+			} else if err != nil || g.Pool != 2 || g.Territories[0].Troops != 2 {
+				t.Fatal("building payment must release placement when fewer than five cards remain", err)
+			}
+		})
 	}
 }

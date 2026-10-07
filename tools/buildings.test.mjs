@@ -116,3 +116,13 @@ test('all target stages sum costs, keep the current defense and never offer down
  for(const change of [{paused:true},{actor:1},{phase:'defend'},{phase:'setup'}])assert.match(buildingPanel({...g,...change},1,5),/id="building-confirm" disabled/);
  assert.doesNotMatch(buildingPanel({...g,me:1},1,5),/building-target|building-confirm|Vorschau:|building-quote/);
 });
+
+test('mandatory trade allows spending cards on a building upgrade',()=>{
+ const game={rules:'domination',phase:'reinforce',me:0,actor:0,mustTrade:true,hand:[0,1,2,3,4],territories:[{owner:0,troops:1,buildingLevel:2}]};
+ const html=buildingPanel(game,1,5);
+ assert.match(html,/3 Karten/);
+ assert.doesNotMatch(html,/id="building-confirm" disabled/);
+ assert.doesNotMatch(html,/data-building-card="[^"]+"[^>]*disabled/);
+ assert.doesNotMatch(html,/Tausche zuerst deinen verpflichtenden Kartensatz/);
+ assert.match(buildingPanel({...game,paused:true},1,5),/id="building-confirm" disabled/);
+});

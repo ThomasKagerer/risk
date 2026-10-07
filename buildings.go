@@ -26,7 +26,7 @@ func (r RuleSet) upgradeDuration(from, to int) int {
 	return cost
 }
 func (g *Game) canModifyBuilding(id, player int) bool {
-	return g.hasBuildings() && !(g.Phase == "reinforce" && g.mustTrade()) && !g.Paused && player == g.Turn && g.mine(id, player) &&
+	return g.hasBuildings() && !g.Paused && player == g.Turn && g.mine(id, player) &&
 		(g.Phase == "reinforce" || g.Phase == "attack" || g.Phase == "fortify") && g.Territories[id-1].Construction == nil
 }
 func (g *Game) canBuild(id, player int) bool {

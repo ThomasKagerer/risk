@@ -13,9 +13,9 @@ export function buildingPortrait(level,capital=false,construction=null){
 export function buildingPanel(game,id,target,capital=false,cardLabels={}){
  const t=game.territories[id-1],current=t.buildingLevel||0,c=t.construction,next=nextBuildingStage(t),bonus=armyExperience(t).bonus,limit=current+2+bonus;
  target=t.owner===game.me&&!c&&Number.isInteger(target)&&target>=current&&target<buildingNames.length?target:current;
- const mine=t.owner===game.me,active=mine&&game.actor===game.me&&!game.paused&&!game.mustTrade&&['reinforce','attack','fortify'].includes(game.phase),changeable=active&&!c;
+ const mine=t.owner===game.me,active=mine&&game.actor===game.me&&!game.paused&&['reinforce','attack','fortify'].includes(game.phase),changeable=active&&!c;
  const cost=target-current,duration=buildingUpgradeDuration(current,target),upgrade=target>current,affordable=(game.hand||[]).length>=cost;
- const reason=!mine?tr('Dieses Gebäude gehört einem anderen Spieler.'):game.mustTrade?tr('Tausche zuerst deinen verpflichtenden Kartensatz.'):game.paused?tr('Setze die Partie fort, um auszubauen.'):!active?tr('Ausbauen ist nach der Startaufstellung in deinem eigenen Zug möglich.'):c?tr('Der laufende Ausbau muss zuerst fertig werden.'):'';
+ const reason=!mine?tr('Dieses Gebäude gehört einem anderen Spieler.'):game.paused?tr('Setze die Partie fort, um auszubauen.'):!active?tr('Ausbauen ist nach der Startaufstellung in deinem eigenen Zug möglich.'):c?tr('Der laufende Ausbau muss zuerst fertig werden.'):'';
  const available=(game.hand||[]).length;
  return tr`<section class="building-manager" data-building-territory="${id}" data-building-room="${escape(game.code)}" data-building-revision="${game.revision}">
   <div class="building-current"><strong>Aktuell: ${buildingNames[current]}</strong><span>${Math.min(t.troops,limit)} / ${limit} Würfel besetzt · ${t.troops} Einheiten${bonus?tr` · +${bonus} durch Erfahrung`:""}</span></div>
